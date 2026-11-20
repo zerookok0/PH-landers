@@ -369,7 +369,12 @@ const main = async () => {
   check(login.url === '/account', 'login returns to /account', login.url);
   check(login.name === true, 'login restores the registered profile');
 
-  // 10b. 错误密码必须被拒（不再是"随便填都成功"）
+  // 10b. 登录模式决定错误密码的行为：lenient（默认）= 直接进，strict = 报错留在登录页
+  const authMode = await evaluate(`
+    const r = await fetch('/api/customer/me', { credentials: 'same-origin' });
+    const j = await r.json().catch(() => ({}));
+    return j.auth_mode === 'strict' ? 'strict' : 'lenient';
+  `);
   await evaluate(`document.getElementById('ld-logout')?.click(); return true;`);
   await sleep(2000);
   await goto(BASE + '/login');
@@ -380,27 +385,43 @@ const main = async () => {
     document.getElementById('ld-login-submit').click();
     return true;
   `);
-  await sleep(1800);
+  await sleep(2200);
   const wrong = await evaluate(`
     return { url: location.pathname, err: document.getElementById('ld-login-error')?.textContent || '' };
   `);
-  check(wrong.url === '/login', 'wrong password stays on /login', wrong.url);
-  check(/incorrect password/i.test(wrong.err), 'wrong password shows an error', wrong.err.trim());
+  if (authMode === 'lenient') {
+    check(wrong.url === '/account', 'lenient: wrong password still signs in (fake logged-in state)', wrong.url);
+  } else {
+    check(wrong.url === '/login', 'strict: wrong password stays on /login', wrong.url);
+    check(/incorrect password/i.test(wrong.err), 'strict: wrong password shows an error', wrong.err.trim());
+  }
 
-  // 10c. 未注册邮箱也必须被拒
+  // 10c. 随机邮箱：lenient 也必须是"登录成功"
+  await goto(BASE + '/account');
+  await evaluate(`document.getElementById('ld-logout')?.click(); return true;`);
+  await sleep(2000);
+  await goto(BASE + '/login');
   await evaluate(`
     const set = (id, v) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); };
-    set('ld-email', 'nobody-here@example.com');
-    set('ld-password', 'secret123');
+    set('ld-email', 'guest-' + Date.now() + '@example.com');
+    set('ld-password', 'whatever');
     document.getElementById('ld-login-submit').click();
     return true;
   `);
-  await sleep(1800);
-  const unknown = await evaluate(`
-    return { url: location.pathname, err: document.getElementById('ld-login-error')?.textContent || '' };
+  await sleep(2400);
+  const guest = await evaluate(`
+    return {
+      url: location.pathname,
+      header: document.getElementById('ld-account')?.textContent || '',
+      profile: document.getElementById('ld-profile')?.textContent || '',
+    };
   `);
-  check(unknown.url === '/login', 'unknown email stays on /login', unknown.url);
-  check(/no account/i.test(unknown.err), 'unknown email shows a clear message', unknown.err.trim());
+  if (authMode === 'lenient') {
+    check(guest.url === '/account', 'lenient: unknown email signs in', guest.url);
+    check(/Hi,/.test(guest.header), 'lenient: header shows a member', guest.header.trim().slice(0, 30));
+  } else {
+    check(guest.url === '/login', 'strict: unknown email stays on /login', guest.url);
+  }
 
   // 11. console errors
   const errors = events

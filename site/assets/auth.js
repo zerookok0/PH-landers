@@ -28,10 +28,18 @@
   AUTH.me = async () => {
     try {
       const { data } = await jsonFetch('/api/customer/me');
+      if (data && data.auth_mode) AUTH._mode = data.auth_mode;
       return data && data.user ? data.user : null;
     } catch (e) {
       return null;
     }
+  };
+
+  /** 当前登录模式：lenient（默认，任何凭证都放行）/ strict（真校验） */
+  AUTH.mode = async () => {
+    if (AUTH._mode) return AUTH._mode;
+    await AUTH.me();
+    return AUTH._mode || 'lenient';
   };
 
   AUTH.login = async (email, password) =>

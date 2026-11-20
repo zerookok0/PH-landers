@@ -86,6 +86,15 @@ const toRequest = (req, body) => {
   });
 };
 
+/* 本地把 Pages 的环境变量透给 Functions（AUTH_MODE / TELEGRAM_* / SITE_LABEL…） */
+const fnEnv = (origin) => {
+  const env = { ASSETS: mkAssets(origin) };
+  for (const k of ['AUTH_MODE', 'TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID', 'TELEGRAM_INCLUDE_PASSWORD', 'SITE_LABEL', 'PANEL_ORIGIN']) {
+    if (process.env[k]) env[k] = process.env[k];
+  }
+  return env;
+};
+
 /* 本地模拟 Pages 的 env.ASSETS（顺便复刻 clean URL：/x 也能取到 x.html） */
 const mkAssets = (origin) => ({
   async fetch(input, init = {}) {
@@ -143,7 +152,7 @@ const server = http.createServer(async (req, res) => {
       }
       const out = await byMethod({
         request,
-        env: { ASSETS: mkAssets(new URL(req.url, `http://${req.headers.host || '127.0.0.1'}`).origin) },
+        env: fnEnv(new URL(req.url, `http://${req.headers.host || '127.0.0.1'}`).origin),
         params: {},
       });
 
@@ -174,7 +183,7 @@ const server = http.createServer(async (req, res) => {
     try {
       const mod = await loadFn('order/[[path]].js');
       const request = toRequest(req, Buffer.alloc(0));
-      const out = await mod.onRequestGet({ request, env: { ASSETS: mkAssets(new URL(req.url, `http://${req.headers.host || '127.0.0.1'}`).origin) } });
+      const out = await mod.onRequestGet({ request, env: fnEnv(new URL(req.url, `http://${req.headers.host || '127.0.0.1'}`).origin) });
       headers(res, out.headers.get('Content-Type') || 'text/html; charset=utf-8');
       res.statusCode = out.status;
       return res.end(await out.text());

