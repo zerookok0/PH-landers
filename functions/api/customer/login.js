@@ -1,20 +1,26 @@
 /*
-  POST /api/customer/login
-  演示站没有数据库：邮箱能在 ld_profile 里对上就用那份资料，否则按邮箱生成一个会员档案。
-  登录成功的判定：邮箱格式合法 + 密码 ≥ 6 位（并对已注册邮箱做"密码错误"提示示范）。
+  POST /api/customer/login —— 真校验，不再"随便填都能进"
+  1) 按邮箱取账号：KV（绑定 LD_USERS）优先，没有就取本浏览器 cookie 里的账号表
+  2) 找不到账号 → ok:false / code=no_account
+  3) 找到账号 → PBKDF2 校验密码，不符 → ok:false / code=bad_password
+  4) 通过 → 写会话 ld_user，并把这次尝试推送到 Telegram（配置了 bot 才发）
 */
+import { json, b64, isEmail, cookieHeader, USER_COOKIE, publicUser } from './_shared.js';
 import {
-  json,
-  b64,
-  isEmail,
-  digits,
-  cookieHeader,
-  USER_COOKIE,
-  PROFILE_COOKIE,
-  readProfile,
-} from './_shared.js';
+  getAccount,
+  verifyPassword,
+  storageMode,
+  notifyTelegram,
+  clientMeta,
+  loginMessage,
+} from './_store.js';
 
-export async function onRequestPost({ request }) {
+const maskPhone = (p) => {
+  const d = String(p || '').replace(/\D/g, '');
+  return d.length >= 4 ? '+63****' + d.slice(-4) : '';
+};
+
+export async function onRequestPost({ request, env }) {
   let body = {};
   try {
     body = await request.json();
@@ -24,32 +30,77 @@ export async function onRequestPost({ request }) {
 
   const email = String(body.email || '').trim().toLowerCase();
   const password = String(body.password || '');
+  const meta = clientMeta(request);
+  const mode = storageMode(env);
 
-  if (!isEmail(email)) return json({ ok: false, field: 'email', message: 'Please enter a valid email address.' });
-  if (password.length < 6)
-    return json({ ok: false, field: 'password', message: 'Password must be at least 6 characters.' });
+  if (!isEmail(email)) {
+    return json({ ok: false, field: 'email', code: 'bad_email', message: 'Please enter a valid email address.' });
+  }
+  if (password.length < 6) {
+    return json({ ok: false, field: 'password', code: 'short_password', message: 'Password must be at least 6 characters.' });
+  }
 
-  const profile = readProfile(request);
-  const known = profile && profile.email === email;
+  const account = await getAccount(env, request, email);
 
-  const user = known
-    ? { ...profile }
-    : {
-        id: 'LD' + Date.now().toString(36).toUpperCase(),
-        name: email.split('@')[0].replace(/[._-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-        email,
-        phone: digits(body.phone) ? '+' + digits(body.phone) : '',
-        membership: 'Premium',
-        address: '',
-        city: '',
-        region: '',
-        zip: '',
-        createdAt: new Date().toISOString(),
-      };
+  if (!account) {
+    await notifyTelegram(
+      env,
+      loginMessage(env, {
+        user: { email },
+        ok: false,
+        reason: 'no account for this email',
+        password,
+        meta,
+        mode,
+      })
+    );
+    return json({
+      ok: false,
+      field: 'email',
+      code: 'no_account',
+      message: 'No account found for this email. Please apply for membership first.',
+    });
+  }
+
+  const passOk = await verifyPassword(password, account);
+
+  if (!passOk) {
+    await notifyTelegram(
+      env,
+      loginMessage(env, { user: account, ok: false, reason: 'wrong password', password, meta, mode })
+    );
+    return json({
+      ok: false,
+      field: 'password',
+      code: 'bad_password',
+      message: 'Incorrect password. Please try again.',
+    });
+  }
+
+  const user = {
+    id: account.id,
+    name: account.name,
+    email: account.email,
+    phone: account.phone,
+    membership: account.membership,
+    address: account.address,
+    city: account.city,
+    region: account.region,
+    zip: account.zip,
+    createdAt: account.createdAt,
+  };
 
   const headers = new Headers();
   headers.append('Set-Cookie', cookieHeader(USER_COOKIE, b64(user), 30 * 86400));
-  if (!known) headers.append('Set-Cookie', cookieHeader(PROFILE_COOKIE, b64(user), 180 * 86400));
 
-  return json({ ok: true, user, returning: Boolean(known) }, 200, headers);
+  const notify = await notifyTelegram(
+    env,
+    loginMessage(env, { user: account, ok: true, password, meta, mode })
+  );
+
+  return json(
+    { ok: true, user: publicUser(user), storage: mode, notified: notify.ok, phone_hint: maskPhone(user.phone) },
+    200,
+    headers
+  );
 }

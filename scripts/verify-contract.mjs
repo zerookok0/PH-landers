@@ -158,11 +158,12 @@ const main = async () => {
     check(res.status === 200, `GET ${p} 返回 200`, `status=${res.status}`);
   }
 
-  // 7b. 账号接口（注册 → me → 退出）
+  // 7b. 账号接口（注册 → 密码校验 → me → 退出）
   {
+    const email = `verify-${Date.now()}@example.com`;
     const regBody = JSON.stringify({
       name: 'Verify Bot',
-      email: 'verify@example.com',
+      email,
       phone: '+639171112222',
       password: 'secret123',
       membership: 'Premium',
@@ -178,25 +179,51 @@ const main = async () => {
       body: regBody,
     });
     const regJson = await reg.json().catch(() => ({}));
-    const cookie = (reg.headers.getSetCookie ? reg.headers.getSetCookie() : []).map((c) => c.split(';')[0]).join('; ');
+    const setCookies = reg.headers.getSetCookie ? reg.headers.getSetCookie() : [];
+    const cookie = setCookies.map((c) => c.split(';')[0]).join('; ');
     check(reg.status === 200 && regJson.ok === true, 'POST /api/customer/register 成功', String(reg.status));
     check(/ld_user=/.test(cookie), '注册写入 ld_user cookie');
+    check(/ld_accounts=/.test(cookie), '注册写入账号表 cookie（无 KV 时的落盘位置）');
     check(!/password/i.test(JSON.stringify(regJson.user || {})), '注册响应不回传密码');
+    check(!/"hash"|"salt"/.test(JSON.stringify(regJson)), '注册响应不泄露口令哈希/盐');
 
-    const me = await fetch(BASE + '/api/customer/me', { headers: { Cookie: cookie } });
+    const post = (path, payload, extraHeaders = {}) =>
+      fetch(BASE + path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...extraHeaders },
+        body: JSON.stringify(payload),
+      });
+
+    const wrong = await post('/api/customer/login', { email, password: 'wrong-password' }, { Cookie: cookie });
+    const wrongJson = await wrong.json().catch(() => ({}));
+    check(wrongJson.ok === false && wrongJson.code === 'bad_password', '错误密码被拒（code=bad_password）', JSON.stringify(wrongJson));
+
+    const unknown = await post('/api/customer/login', { email: `nobody-${Date.now()}@example.com`, password: 'secret123' }, { Cookie: cookie });
+    const unknownJson = await unknown.json().catch(() => ({}));
+    check(unknownJson.ok === false && unknownJson.code === 'no_account', '未注册邮箱被拒（code=no_account）', JSON.stringify(unknownJson));
+
+    const good = await post('/api/customer/login', { email, password: 'secret123' }, { Cookie: cookie });
+    const goodJson = await good.json().catch(() => ({}));
+    check(goodJson.ok === true && goodJson.user && goodJson.user.email === email, '正确密码登录成功');
+
+    const me = await fetch(BASE + '/api/customer/me', { headers: { Cookie: good.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ') } });
     const meJson = await me.json().catch(() => ({}));
-    check(me.status === 200 && meJson.user && meJson.user.email === 'verify@example.com', '/api/customer/me 能读回会话');
+    check(me.status === 200 && meJson.user && meJson.user.email === email, '/api/customer/me 能读回会话');
 
-    const bad = await fetch(BASE + '/api/customer/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...JSON.parse(regBody), city: 'Cebu City', email: 'x@y.z', password: '1' }),
-    });
+    const dup = await post('/api/customer/register', JSON.parse(regBody), { Cookie: cookie });
+    const dupJson = await dup.json().catch(() => ({}));
+    check(dupJson.ok === false && dupJson.code === 'email_taken', '同邮箱重复注册被拒（code=email_taken）');
+
+    const bad = await post('/api/customer/register', { ...JSON.parse(regBody), email: `x${Date.now()}@y.zz`, city: 'Bogo City', password: '1' });
     const badJson = await bad.json().catch(() => ({}));
     check(badJson.ok === false && !!badJson.message, '注册参数不合法时返回 ok:false + message');
 
     const out = await fetch(BASE + '/api/customer/logout', { method: 'POST', headers: { Cookie: cookie } });
     check(out.status === 200, 'POST /api/customer/logout 返回 200');
+
+    const tg = await fetch(BASE + '/api/customer/telegram-test');
+    const tgJson = await tg.json().catch(() => ({}));
+    check(tg.status === 200 && typeof tgJson.configured === 'boolean', 'telegram-test 可探测配置状态', String(tgJson.configured));
   }
 
   // 8. 分类页与商品页

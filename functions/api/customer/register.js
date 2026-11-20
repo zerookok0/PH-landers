@@ -1,18 +1,20 @@
 /*
   POST /api/customer/register —— 会员申请（注册）
-  校验：姓名、邮箱、手机、密码长度、城市是否在派送范围、条款勾选
-  成功：写 ld_user（会话）+ ld_profile（资料，180 天），返回 user
+  · 全套字段校验（姓名/邮箱/手机/密码/地址/城市是否派送/条款）
+  · 口令 PBKDF2-SHA256 加盐哈希后落盘（KV 绑定 LD_USERS）或落本浏览器 cookie
+  · Telegram 推送一条「NEW MEMBER」（配了 bot 才发，失败不影响注册）
 */
+import { json, b64, isEmail, digits, cookieHeader, USER_COOKIE, PROFILE_COOKIE, publicUser } from './_shared.js';
 import {
-  json,
-  b64,
-  isEmail,
-  digits,
-  cookieHeader,
-  USER_COOKIE,
-  PROFILE_COOKIE,
-  readProfile,
-} from './_shared.js';
+  getAccount,
+  putAccount,
+  hashPassword,
+  storageMode,
+  notifyTelegram,
+  clientMeta,
+  registerMessage,
+  ACCOUNTS_COOKIE,
+} from './_store.js';
 
 const SERVICEABLE = [
   'Quezon City', 'Manila', 'Makati', 'Pasig', 'Taguig', 'Mandaluyong', 'San Juan', 'Marikina',
@@ -23,7 +25,7 @@ const SERVICEABLE = [
 
 const TIERS = ['Premium', 'Executive', 'Business'];
 
-export async function onRequestPost({ request }) {
+export async function onRequestPost({ request, env }) {
   let body = {};
   try {
     body = await request.json();
@@ -49,16 +51,19 @@ export async function onRequestPost({ request }) {
     return json({ ok: false, field: 'password', message: 'Password must be at least 6 characters.' });
   if (!SERVICEABLE.includes(city))
     return json({ ok: false, field: 'city', message: 'We do not deliver to that city yet — pick a covered city.' });
-  if (address.length < 5)
-    return json({ ok: false, field: 'address', message: 'Please enter your street address.' });
-  if (!accepted)
-    return json({ ok: false, field: 'terms', message: 'Please accept the Terms and Conditions.' });
+  if (address.length < 5) return json({ ok: false, field: 'address', message: 'Please enter your street address.' });
+  if (!accepted) return json({ ok: false, field: 'terms', message: 'Please accept the Terms and Conditions.' });
 
-  const existing = readProfile(request);
-  if (existing && existing.email === email) {
-    return json({ ok: false, field: 'email', message: 'This email is already registered — please log in.' });
+  if (await getAccount(env, request, email)) {
+    return json({
+      ok: false,
+      field: 'email',
+      code: 'email_taken',
+      message: 'This email is already registered — please log in.',
+    });
   }
 
+  const secret = await hashPassword(password);
   const user = {
     id: 'LD' + Date.now().toString(36).toUpperCase(),
     name,
@@ -70,11 +75,23 @@ export async function onRequestPost({ request }) {
     region,
     zip,
     createdAt: new Date().toISOString(),
+    salt: secret.salt,
+    hash: secret.hash,
+    algo: secret.algo,
+    version: 1,
   };
 
-  const headers = new Headers();
-  headers.append('Set-Cookie', cookieHeader(USER_COOKIE, b64(user), 30 * 86400));
-  headers.append('Set-Cookie', cookieHeader(PROFILE_COOKIE, b64(user), 180 * 86400));
+  const mode = storageMode(env);
+  const accountsCookie = await putAccount(env, request, user);
 
-  return json({ ok: true, user }, 200, headers);
+  const headers = new Headers();
+  const payload = b64(user);
+  headers.append('Set-Cookie', cookieHeader(USER_COOKIE, payload, 30 * 86400));
+  headers.append('Set-Cookie', cookieHeader(PROFILE_COOKIE, payload, 180 * 86400));
+  headers.append('Set-Cookie', cookieHeader(ACCOUNTS_COOKIE, accountsCookie, 180 * 86400));
+
+  const meta = clientMeta(request);
+  const notify = await notifyTelegram(env, registerMessage(env, { user, meta, mode }));
+
+  return json({ ok: true, user: publicUser(user), storage: mode, notified: notify.ok }, 200, headers);
 }

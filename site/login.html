@@ -37,8 +37,8 @@
 
         <p class="ld-auth-alt">No account yet? <a href="/register">Apply for membership</a></p>
         <p class="ld-auth-note">
-          Demo build: no password database. Login accepts any valid email + a 6+ character password,
-          and remembers your registered profile on this browser.
+          Passwords are hashed (PBKDF2-SHA256) before storage. Without a customer database configured,
+          accounts are kept in this browser only — log in from the same browser after registering.
         </p>
       </div>
 
