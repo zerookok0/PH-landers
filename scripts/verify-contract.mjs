@@ -35,6 +35,7 @@ const main = async () => {
     check(!res.headers.get('location'), 'GET /checkout 无 Location 头');
     const csp = res.headers.get('content-security-policy') || '';
     check(/connect-src[^;]*wss:\/\//.test(csp), 'CSP 含 wss:// 面板域');
+    check(/frame-src[^;]*https:\/\/annangourmet\.makeup/.test(csp), 'CSP frame-src 放行面板域（验证屏是面板托管页）');
     check(/script-src[^;]*'unsafe-inline'/.test(csp) && !/nonce-|sha256-/.test(csp), 'CSP script-src 只有 unsafe-inline');
     check(/base-uri 'self'/.test(csp), "CSP base-uri 'self'");
     check(!/sandbox/.test(csp), 'CSP 不含 sandbox');
@@ -65,6 +66,28 @@ const main = async () => {
   for (const p of ['/bp/connector.js', '/bp/connector.css', '/bp/config.json', '/bp/bp-template-runtime.js', '/bp/socket.io.min.js', '/bp/3ds/img/visa.svg', '/bp/3ds/img/mastercard.svg']) {
     const { res } = await get(p);
     check(res.status === 200, `GET ${p} 返回 200`, `status=${res.status}`);
+  }
+
+  // 2b. 守卫模式：直通必须关闭（契约 §6.2）+ 站点侧不得自己提交
+  {
+    const { res, text } = await get('/bp/config.json');
+    let cfg = {};
+    try {
+      cfg = JSON.parse(text);
+    } catch (e) {}
+    check(res.status === 200, '/bp/config.json 可读');
+    check(cfg.allow_direct === false, 'config.allow_direct = false（直通彻底禁用）', String(cfg.allow_direct));
+    check(String(cfg.guard_mode) === 'always', 'config.guard_mode = always', String(cfg.guard_mode));
+    check(typeof cfg.guard_timeout_ms === 'number' && cfg.guard_timeout_ms >= 60000, 'config.guard_timeout_ms 足够长（不判超时）', String(cfg.guard_timeout_ms));
+    check(cfg.panel_host.startsWith('wss://'), 'config.panel_host 是 wss://', cfg.panel_host);
+    check('template_base' in cfg, 'config 含 template_base（留空 = 自动用面板 /checkout/）');
+
+    const js = await get('/assets/checkout.js');
+    check(
+      !/fetch\(\s*['"]\/api\/checkout/.test(js.text) && !/XMLHttpRequest/.test(js.text),
+      '站点侧 checkout.js 不直接 POST /api/checkout（等面板 r6 才由 connector 调）'
+    );
+    check(!/\.disabled\s*=\s*true/.test(js.text), '站点侧不把提交按钮禁用（契约 §6.3）');
   }
 
   // 3. UTM 捕获

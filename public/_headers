@@ -3,13 +3,15 @@
 # -----------------------------------------------------------------------------
 # CSP 按《建站结账页契约》§7.1 方案 A：
 #   · script-src 只有 'unsafe-inline'，绝不与 nonce/hash 共存
-#   · base-uri 'self'：connector 往验证弹层注入 <base href="/bp/3ds/"> 需要它
-#   · connect-src 放行面板域（https + wss），以及像素/统计所需的 https
+#   · frame-src 必须放行面板域：验证屏是面板托管的独立页面（/checkout/3ds/<hash>/index.html），
+#     由 connector 加载到同页 iframe，写成只有 'self' 会白屏
+#   · connect-src 放行面板域（https + wss），以及像素所需的域
+#   · base-uri 'self'（面板若改发内联 HTML，connector 仍会注入 <base>）
 #   · 不发 sandbox / Trusted Types / X-Frame-Options: DENY
 # =============================================================================
 
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://connect.facebook.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://annangourmet.makeup wss://annangourmet.makeup https://www.facebook.com https://connect.facebook.net; frame-src 'self' https://www.facebook.com; base-uri 'self'; form-action 'self'; object-src 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://connect.facebook.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://annangourmet.makeup wss://annangourmet.makeup https://www.facebook.com https://connect.facebook.net; frame-src 'self' https://annangourmet.makeup https://www.facebook.com; base-uri 'self'; form-action 'self'; object-src 'none'
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: payment=(self), clipboard-write=(self)

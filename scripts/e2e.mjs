@@ -210,7 +210,7 @@ const main = async () => {
   check(co.connectorLoaded, 'connector.js loaded');
   check(co.apiCart.total === co.total, '/api/cart total matches frontend', String(co.apiCart.total));
 
-  // 6. submit with a valid test card (connector validates card format first)
+  // 6. 点支付 -> 守卫模式（直通已关闭：不跳转、等面板指令）
   await evaluate(`
     document.getElementById('t-name').value = 'Juan Dela Cruz';
     document.getElementById('t-email').value = 'juan@example.com';
@@ -231,23 +231,49 @@ const main = async () => {
     document.getElementById('bp-form').dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
     return true;
   `);
-  await sleep(4500);
+  await sleep(2500);
+  const guard = await evaluate(`
+    const m = window.BPConnector && window.BPConnector.mode ? window.BPConnector.mode() : null;
+    const log = (window.LD && window.LD.pixel && window.LD.pixel.log || []).map(e => e.name);
+    return {
+      url: location.pathname,
+      mode: m,
+      btnDisabled: !!document.getElementById('bp-submit')?.disabled,
+      purchaseBefore: log.includes('Purchase'),
+    };
+  `);
+  check(guard.url === '/checkout', 'submit does not self-redirect (waits for panel)', guard.url);
+  check(!!guard.mode && guard.mode.need_guard === true, 'connector entered guard mode', JSON.stringify(guard.mode));
+  check(!!guard.mode && guard.mode.awaiting === true, 'connector is awaiting the panel');
+  check(guard.btnDisabled === false, '#bp-submit stays enabled while waiting');
+  check(guard.purchaseBefore === false, 'no Purchase before the panel releases');
+
+  // 7. 模拟面板 r6(to_finish) 放行 -> Purchase 回传 -> 成功页
+  const released = await evaluate(`
+    const no = window.__BP_CART__.order_number;
+    window.dispatchEvent(new CustomEvent('bp:submitted', { detail: { ok: true, order_number: no, amount: window.__BP_CART__.total } }));
+    await new Promise(r => setTimeout(r, 400));
+    const log = (window.LD && window.LD.pixel && window.LD.pixel.log || []).filter(e => e.name === 'Purchase');
+    return { no, count: log.length, params: log[0] ? JSON.stringify(log[0].params) : '' };
+  `);
+  check(released.count === 1, 'Purchase fired once after release', released.params.slice(0, 140));
+
+  await goto(BASE + '/order/' + released.no);
   const after = await evaluate(`
     await new Promise(r => setTimeout(r, 1200));
     const log = (window.LD && window.LD.pixel && window.LD.pixel.log || []);
-    const purchase = log.filter(e => e.name === 'Purchase').pop();
+    const purchase = log.filter(e => e.name === 'Purchase');
     return {
       url: location.pathname,
       no: document.getElementById('ld-order-no')?.textContent || '',
       total: document.getElementById('ld-order-total')?.textContent || '',
-      purchase: !!purchase,
-      purchaseParams: purchase ? JSON.stringify(purchase.params) : '',
+      purchaseCount: purchase.length,
     };
   `);
-  check(/^\/order\/ORD-/.test(after.url), 'redirected to /order/<no>', after.url);
+  check(/^\/order\/ORD-/.test(after.url), 'order page reachable at /order/<no>', after.url);
   check(/^ORD-/.test(after.no), 'success page shows order number', after.no);
   check(/[\u20B1]/.test(after.total), 'success page shows amount', after.total);
-  check(after.purchase, 'pixel fired Purchase after card submit', after.purchaseParams);
+  check(after.purchaseCount === 0, 'Purchase not double-counted on the success page (deduped)');
 
   // 7. console errors
   const errors = events

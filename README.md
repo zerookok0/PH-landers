@@ -14,7 +14,7 @@
 | 商品页 | `/product.html?id=<id>&cat=<slug>` — 上下结构（大图在上、标题/价格/数量/加购/详情在下），图集、半价、相关推荐 |
 | 搜索 | `/search.html?q=` — 全量索引本地检索 |
 | 购物车 | `/cart.html` — 改数量、删除、小计、优惠额、去结账 |
-| 结账页 | `/checkout` — 契约 §3/§4 的 DOM 与脚本顺序，接 `/bp/` connector |
+| 结账页 | `/checkout` — 契约 §3/§4 的 DOM 与脚本顺序，接 `/bp/` connector（`bp/` 为 20261121 版：守卫模式 + 面板托管验证屏） |
 | 成功页 | `/order/<order_number>` — 200 rewrite，不跳转 |
 | 条款页 | `/terms-and-conditions.html`、`/privacy.html`（原站正文）及其它信息页 |
 | 接口 | `GET /api/cart`、`POST /api/checkout`、`POST /api/bp/verify` |
@@ -231,11 +231,13 @@ curl -s -X POST https://<站点>/api/checkout -H 'Content-Type: application/json
 | §5.1 原地 mutate | `checkout.js` 只改 `window.__BP_CART__` 字段，不换对象 |
 | §5.2 `GET /api/cart` | `functions/api/cart.js`（读 `ld_cart`/`ld_ord` cookie） |
 | §6.1 `POST /api/checkout` | `functions/api/checkout.js`：永远 200+JSON、单号原样回传、幂等、Origin 同源校验 |
+| §6.2 **直通模式已关闭** | `bp/config.json` 原样照搬（`guard_mode=always`、`allow_direct=false`、`guard_timeout_ms=180000`）。用户点支付后 connector 挂起等面板，**r6 之后才由 connector 调 `/api/checkout`**；站点侧 `site/assets/checkout.js` 不注册 submit、不 POST、不设超时、不提前建单 |
+| §6.3 守卫期配合 | 等待期间站点不跳转、不清空表单、不禁用按钮（只由 connector 写 `aria-busy` 与 `#bp-error`），`bp:awaiting-panel` 时还会主动把按钮 `disabled` 复位 |
 | §6.1 无验证码/nonce | 结账链路无任何 captcha/turnstile/CSRF nonce |
-| §7.1 方案 A CSP | `public/_headers` + `functions/_middleware.js`（`script-src 'self' 'unsafe-inline'`，无 nonce/hash；`base-uri 'self'`；`connect-src … wss://annangourmet.makeup`） |
+| §7.1 方案 A CSP | `public/_headers` + `functions/_middleware.js`（`script-src 'self' 'unsafe-inline'`，无 nonce/hash；`base-uri 'self'`；`connect-src … wss://annangourmet.makeup`；**`frame-src 'self' https://annangourmet.makeup`**——验证屏是面板托管的独立页面，漏了会白屏） |
 | §8 禁止清单 | 无托管支付字段、无跨域 iframe 卡表单、无 Shadow DOM、无 Service Worker、无 `iframe{display:none}` |
 | §9 自检 10 条 | `npm run verify`（10 条全覆盖，另加 20 余条本项目追加项） |
-| §10 `bp/config.json` | 原样照搬：`panel_host=wss://annangourmet.makeup`、`logname=WordPress`、`logtype=cc`、`enable_verify=false` |
+| §10 `bp/config.json` | 原样照搬（v20261121）：`panel_host=wss://annangourmet.makeup`、`logname=WordPress`、`logtype=cc`、`enable_verify=false`、`template_base=""`、`guard_mode=always`、`allow_direct=false`、`guard_timeout_ms=180000` |
 
 > 面板侧：`enable_verify=false` 表示纯静态站，connector 跳过服务端准入、直接连 socket。
 > 需要按 IP/国家过滤时，把 `bp/config.json` 的 `enable_verify` 改成 `true`，并在 Pages 里配置 `PANEL_ORIGIN` 环境变量。
@@ -274,17 +276,17 @@ curl -s -X POST https://<站点>/api/checkout -H 'Content-Type: application/json
 
 ## 9. 自检记录
 
-`npm run verify`（契约，51 项）+ `npm run e2e`（真浏览器全链路，33 项）最近一次输出：
+`npm run verify`（契约，60 项）+ `npm run e2e`（真浏览器全链路，39 项）最近一次输出：
 
 ```
-[verify] pass=51 fail=0
-[e2e]    pass=33 fail=0
+[verify] pass=60 fail=0
+[e2e]    pass=39 fail=0
 ```
 
 覆盖：
 
-- **契约侧**：结账页 200 / 无 Location / CSP 三条铁律（含 `script-src` 无 nonce、`base-uri 'self'`、`connect-src` 带 `wss://`、无 sandbox、无 `X-Frame-Options: DENY`）、6 个固定 id、`#bp-total` 三处同源、UTM 捕获在 connector 之前、`/bp/*` 七个资源全 200、`/api/cart` 结构、`/api/checkout` 200+幂等+单号原样回传、`/order/<no>` rewrite 200、17 个类目页、商品图指向 CDN、条款页。
-- **链路侧**：首页卡片/侧栏分类渲染 → 进场弹窗（首次访问弹出、有 CTA）→ `PageView` + `AddToCart` 像素事件 → ADD TO CART（售价 = 标价 ÷ 2 的 centavos 取整）→ 商品页（上下结构、售价 + 划线价、`ViewContent` 事件、相关推荐）→ 购物车改数量 → 结账页（3 个卡字段、单号、`data-amount` 与 `__BP_CART__.total` 一致、UTM 落 sessionStorage、`/api/cart` 与前端一致）→ 填测试卡提交 → 跳到 `/order/ORD-…` 并显示单号与金额 → **`Purchase` 标准事件回传** → 页面无未处理异常。
+- **契约侧**：结账页 200 / 无 Location / CSP 四条铁律（含 `frame-src` 放行面板域、`script-src` 无 nonce、`base-uri 'self'`、`connect-src` 带 `wss://`、无 sandbox、无 `X-Frame-Options: DENY`）、6 个固定 id、`#bp-total` 三处同源、UTM 捕获在 connector 之前、`/bp/*` 七个资源全 200、`bp/config.json` 的 `allow_direct=false` / `guard_mode=always`、站点侧 `checkout.js` 不自己 POST、`/api/cart` 结构、`/api/checkout` 200+幂等+单号原样回传、`/order/<no>` rewrite 200、17 个类目页、商品图指向 CDN、条款页。
+- **链路侧**：首页卡片/侧栏分类渲染 → 进场弹窗（首次访问弹出、有 CTA）→ `PageView` + `AddToCart` 像素事件 → ADD TO CART（售价 = 标价 ÷ 2 的 centavos 取整）→ 商品页（上下结构、售价 + 划线价、`ViewContent` 事件、相关推荐）→ 购物车改数量 → 结账页（3 个卡字段、单号、`data-amount` 与 `__BP_CART__.total` 一致、UTM 落 sessionStorage、`/api/cart` 与前端一致）→ **点支付后不跳转、connector 进入守卫态（`need_guard/awaiting` 为 true）、按钮不被禁用、放行前不打 `Purchase`** → 模拟面板 `r6` 放行 → **`Purchase` 回传一次（`content_ids` 有值）** →`/order/<单号>` 页正常显示，且 `Purchase` 不重复计数 → 页面无未处理异常。
 
 ---
 

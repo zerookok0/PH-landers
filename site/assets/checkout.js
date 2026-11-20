@@ -1,9 +1,13 @@
-/* 结账页：购物车 -> __BP_CART__ -> /api/cart（双保险） -> /api/checkout
-   契约要点：
-   - 金额三处同源（__BP_CART__.total / #bp-total[data-amount] / 展示文本）
-   - 单号就是最终单号，提交后不换号
-   - 按钮不禁用，用 aria-busy 防重复；错误写进 #bp-error
-   - 只在 connector 之后注册 submit 兜底（defer 顺序保证） */
+/* 结账页（站点侧）
+ *
+ * 契约 v1.1 要点：
+ *  - 站点只负责"外壳 + 订单"，卡片与提交全部交给 /bp/connector.js
+ *  - 直通模式已关闭（bp/config.json: guard_mode=always, allow_direct=false）：
+ *    用户点支付后 connector 会挂起等面板验证，r6 之后才 POST /api/checkout，
+ *    所以站点侧**不存在**"点击即成功"的路径，这里也不注册任何 submit 处理器。
+ *  - 站点在等待期间不跳转、不禁用按钮、不覆盖 #bp-error
+ *  - 站点只旁听 connector 抛的事件：bp:submitted → 像素 Purchase
+ */
 (function () {
   const LD = window.LD || {};
   const money = LD.money || ((c) => '\u20B1' + (c / 100).toFixed(2));
@@ -62,7 +66,7 @@
   setText('ld-checkout-saved', '-' + money(listTotal - total));
   setText('ld-checkout-total', totalAmount);
 
-  /* ---------- 2. __BP_CART__：原地 mutate，绝不换对象 ---------- */
+  /* ---------- 2. __BP_CART__：原地 mutate，绝不换对象（契约 §5.1） ---------- */
   const cartPayload = () => {
     const c = window.__BP_CART__;
     c.order_number = orderNumber;
@@ -86,8 +90,10 @@
   const c0 = cartPayload();
   window.dispatchEvent(new CustomEvent('bp:cart-ready', { detail: c0 }));
 
-  /* 成功页的数据快照：connector 也会自己跳转，所以这里在页面加载/输入邮箱时就落盘，
-     不依赖「谁发起的提交」。 */
+  /* ---------- 3. 成功页数据快照（connector 自己跳转也能有数据） ---------- */
+  // 注意：__BP_CART__.items 按契约只有 name/qty/price，像素要的 content_ids 在本地购物车里有 id，
+  // 所以快照与 Purchase 都用这一份带 id 的 items。
+  const itemsWithIds = items.map((it) => ({ id: it.id, name: it.name, qty: it.qty, price: it.price }));
   const snapshot = () => {
     try {
       sessionStorage.setItem(
@@ -96,7 +102,7 @@
           order_number: window.__BP_CART__.order_number,
           email: (document.getElementById('t-email')?.value || '').trim(),
           total: window.__BP_CART__.total,
-          items: window.__BP_CART__.items,
+          items: itemsWithIds,
         })
       );
     } catch (e) {}
@@ -106,24 +112,22 @@
     document.getElementById(id)?.addEventListener('input', snapshot);
   });
 
-  /* ---------- 像素：进入结账 = InitiateCheckout ---------- */
+  /* ---------- 4. 像素：进入结账 = InitiateCheckout ---------- */
   try {
     window.LD?.pixel?.initiateCheckout?.(items, total);
   } catch (e) {}
 
-  /* ---------- 3. /api/cart 双保险：服务端口径对齐 ---------- */
+  /* ---------- 5. /api/cart 双保险：服务端口径对齐（契约 §5.2） ---------- */
   (async () => {
     try {
       const res = await fetch('/api/cart', { credentials: 'same-origin', headers: { Accept: 'application/json' } });
       if (!res.ok) return;
       const server = await res.json();
       if (!server || typeof server.total !== 'number') return;
-      // 单号以服务端为准（同一 cookie 下应完全一致）
       if (server.order_number && server.order_number !== window.__BP_CART__.order_number) {
         window.__BP_CART__.order_number = server.order_number;
         setText('ld-order-number', 'Order ' + server.order_number);
       }
-      // 服务端没有购物车数据时保留前端数据
       if (server.items && server.items.length) {
         window.__BP_CART__.items = server.items;
         window.__BP_CART__.total = server.total;
@@ -136,86 +140,36 @@
     }
   })();
 
-  /* ---------- 4. 兜底提交（connector 之后注册） ---------- */
-  const form = document.getElementById('bp-form');
-  const errBox = document.getElementById('bp-error');
-  const submitBtn = document.getElementById('bp-submit');
-  let busy = false;
-
-  const utm = () => {
-    try {
-      return JSON.parse(sessionStorage.getItem('bp_utm') || '{}');
-    } catch (e) {
-      return {};
-    }
-  };
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault(); // connector 会先处理；这里只做兜底
-    if (busy) return;
-    busy = true;
-    submitBtn.setAttribute('aria-busy', 'true');
-    if (errBox) errBox.textContent = '';
-
-    const val = (id) => (document.getElementById(id)?.value || '').trim();
-    const payload = {
-      order_number: window.__BP_CART__.order_number || orderNumber,
-      amount: window.__BP_CART__.total || total,
-      currency: 'PHP',
-      locale: document.documentElement.lang || 'en',
-      utm: utm(),
-      customer: {
-        name: val('t-name'),
-        email: val('t-email'),
-        phone: val('t-phone'),
-        addr: val('t-addr'),
-        city: val('t-city'),
-        zip: val('t-zip'),
-        country: val('t-country') || 'PH',
-      },
+  /* ---------- 6. 旁听 connector 的事件（不干预它的提交流程） ---------- */
+  window.addEventListener('bp:submitted', (e) => {
+    const detail = e.detail || {};
+    const order = {
+      order_number: detail.order_number || window.__BP_CART__.order_number,
+      total: typeof detail.amount === 'number' ? detail.amount : window.__BP_CART__.total,
+      items: itemsWithIds,
     };
-
     try {
-      const res = await fetch('/api/checkout', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (data && data.ok) {
-        try {
-          sessionStorage.setItem(
-            'ld_last_order',
-            JSON.stringify({
-              order_number: data.order_number,
-              email: payload.customer.email,
-              total: payload.amount,
-              items: window.__BP_CART__.items,
-            })
-          );
-        } catch (err) {}
-        /* 像素：支付成功 → 标准事件 Purchase（按单号去重，成功页不会再打一次） */
-        try {
-          window.LD?.pixel?.purchase?.({
-            order_number: data.order_number,
-            total: payload.amount,
-            items: window.__BP_CART__.items,
-          });
-        } catch (err) {}
-        localStorage.removeItem('ld_cart');
-        document.cookie = 'ld_cart=; path=/; max-age=0; SameSite=Lax';
-        document.cookie = 'ld_ord=; path=/; max-age=0; SameSite=Lax';
-        location.href = '/order/' + encodeURIComponent(data.order_number);
-        return;
-      }
-      if (errBox) errBox.textContent = (data && data.message) || 'Payment could not be completed. Please try again.';
-    } catch (err) {
-      if (errBox) errBox.textContent = 'Network error — your details were kept. Please try again.';
-    } finally {
-      busy = false;
-      submitBtn.removeAttribute('aria-busy');
-      submitBtn.textContent = 'PAY NOW';
-    }
+      snapshot();
+    } catch (err) {}
+    try {
+      window.LD?.pixel?.purchase?.(order);
+    } catch (err) {}
   });
+
+  // 拒卡 / 超时：connector 自己会写 #bp-error 并释放表单，站点不清空输入、不禁用按钮
+  window.addEventListener('bp:submit-failed', () => {
+    try {
+      snapshot();
+    } catch (err) {}
+  });
+
+  /* ---------- 7. 防御：按钮在等待面板期间必须保持可聚焦、不禁用（契约 §6.3） ---------- */
+  const ensureButtonUsable = () => {
+    const btn = document.getElementById('bp-submit');
+    if (!btn) return;
+    if (btn.disabled) btn.disabled = false;
+    btn.style.pointerEvents = '';
+  };
+  ensureButtonUsable();
+  window.addEventListener('bp:awaiting-panel', ensureButtonUsable);
 })();

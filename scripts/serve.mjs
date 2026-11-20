@@ -43,7 +43,7 @@ const CSP = [
   "img-src 'self' data: https:",
   "font-src 'self' data:",
   "connect-src 'self' https://annangourmet.makeup wss://annangourmet.makeup https://www.facebook.com https://connect.facebook.net",
-  "frame-src 'self' https://www.facebook.com",
+  "frame-src 'self' https://annangourmet.makeup https://www.facebook.com",
   "base-uri 'self'",
   "form-action 'self'",
   "object-src 'none'",
