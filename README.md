@@ -43,9 +43,7 @@
 - **字体**：Roboto 自托管（`site/assets/fonts/*.woff2`，`fonts.css` 生成脚本 `scripts/fetch-fonts.mjs`），不依赖 Google Fonts，CSP 不用放开外部字体域。
 - **符号**：所有图标改成内联 SVG / ASCII（`✔ − ‹ ›` 这类字体缺失会显示方框的字符已全部替换）。
 
-### 一个配置文件管三件事：`site/assets/config.js`
-
-```js
+### 一个配置文件管三件事：`site/assets/config.js````js
 window.LD_CONFIG = {
   fbPixelId: '',           // ← 填 Facebook Pixel ID 就启用像素；留空完全不注入脚本
   pixelEvents: { pageView, viewContent, addToCart, initiateCheckout, purchase },  // 逐项开关
@@ -81,6 +79,17 @@ window.LD_CONFIG = {
 
 `Purchase` 有两处触发：`checkout.js` 在 `/api/checkout` 返回 `ok:true` 后立刻打一次；若走 connector 自己的跳转（前端没机会执行），`/order/<单号>` 页首用同一份快照兜底再打一次，**按 `order_id` 去重**，不会重复计入。
 `value` 一律是**比索**（分 ÷ 100），与 `currency: 'PHP'` 配套。
+
+## 链接与跳转（踩过的坑，别再来一次）
+
+Cloudflare Pages 的 **clean URLs** 会把 `/x.html` **308** 到 `/x`。所以：
+
+- 站内链接一律写**无扩展名**：`/promotions`、`/c/food-cupboard`、`/product?id=…`、`/cart`、`/terms-and-conditions`。
+  脚本 `node scripts/strip-html-ext.mjs` 就是干这件事的（把 `/x.html"`、`/c/${slug}.html` 全换成无扩展名）。
+- `public/_redirects` **绝不要**写 `/promotions  /promotions.html  301` 这类规则，否则
+  `301 → .html → 308 → 无扩展名 → 301 …` 直接 `ERR_TOO_MANY_REDIRECTS`（v1 就是这么挂的）。
+- `/order/<order_number>` 不要用 `_redirects` 的 200 rewrite：目标 `/order.html` 会被 308 掉，
+  改成 `functions/order/[[path]].js` 按 200 返回 `order.html` 的内容，URL 保持不变。
 
 ## HTTP 标头（`public/_headers`）
 
@@ -220,7 +229,7 @@ curl -s -X POST https://<站点>/api/checkout -H 'Content-Type: application/json
 
 | 契约条目 | 实现位置 |
 |---|---|
-| §2 路由 `/checkout`、`/order/<no>` | `dist/checkout.html` + `dist/checkout/index.html`（两种形态都 200，不 301）；`/order/*` 由 `_redirects` 200 rewrite 到 `order.html` |
+| §2 路由 `/checkout`、`/order/<no>` | `dist/checkout.html` + `dist/checkout/index.html`（两种形态都 200，不 301）；`/order/<order_number>` 由 **`functions/order/[[path]].js`** 把 `order.html` 内容按 200 直接吐回（不用 `_redirects` 的 200 rewrite——Pages 会把目标 `.html` 再 308 成 `/order`，破坏"不跳转"的硬要求） |
 | §2 `/bp/` 绝对路径 | `site/checkout.html` head 里写死 `/bp/connector.css`、`/bp/connector.js` |
 | §3 head 三段顺序 | UTM 捕获内联脚本 → `window.__BP_CART__` 骨架 → connector 资源，顺序固定 |
 | §3 无 `<base>` | 全站无 `<base>`（自检脚本会查） |
@@ -276,10 +285,10 @@ curl -s -X POST https://<站点>/api/checkout -H 'Content-Type: application/json
 
 ## 9. 自检记录
 
-`npm run verify`（契约，60 项）+ `npm run e2e`（真浏览器全链路，39 项）最近一次输出：
+`npm run verify`（契约，65 项）+ `npm run e2e`（真浏览器全链路，39 项）最近一次输出：
 
 ```
-[verify] pass=60 fail=0
+[verify] pass=65 fail=0
 [e2e]    pass=39 fail=0
 ```
 

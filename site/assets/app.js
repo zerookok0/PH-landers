@@ -120,7 +120,7 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
 
-  LD.productHref = (p) => `/product.html?id=${p.id}&cat=${encodeURIComponent(p.cat)}`;
+  LD.productHref = (p) => `/product?id=${p.id}&cat=${encodeURIComponent(p.cat)}`;
 
   LD.card = (p) => {
     const pr = LD.pricing(p.price);
@@ -173,7 +173,7 @@
       track.innerHTML = home.banners
         .map(
           (b, i) =>
-            `<a href="/promotions.html"><img src="${esc(b)}" alt="Landers banner ${i + 1}" ${i ? 'loading="lazy"' : ''}></a>`
+            `<a href="/promotions"><img src="${esc(b)}" alt="Landers banner ${i + 1}" ${i ? 'loading="lazy"' : ''}></a>`
         )
         .join('');
       dots.innerHTML = home.banners
@@ -200,7 +200,7 @@
     if (tiles) {
       tiles.innerHTML = home.tiles
         .map(
-          (t) => `<a class="ld-tile" href="/c/${t.slug}.html">
+          (t) => `<a class="ld-tile" href="/c/${t.slug}">
             <img loading="lazy" src="${esc(t.img)}" alt="${esc(t.name)}">
             <div>${esc(t.name)}</div></a>`
         )
@@ -234,7 +234,7 @@
       shortcut.innerHTML = cats
         .filter((c) => c.slug !== 'uncategorized')
         .slice(0, 12)
-        .map((c) => `<a class="ld-tile" href="/c/${c.slug}.html"><div>${esc(c.name)}</div></a>`)
+        .map((c) => `<a class="ld-tile" href="/c/${c.slug}"><div>${esc(c.name)}</div></a>`)
         .join('');
     }
   }
@@ -319,7 +319,7 @@
     const box = document.getElementById('ld-product');
     const crumb = document.getElementById('ld-crumb');
     if (crumb) {
-      crumb.innerHTML = `<a href="/">Home</a> / <a href="/c/${p.cat}.html">${esc(data.name)}</a> / ${esc(p.name)}`;
+      crumb.innerHTML = `<a href="/">Home</a> / <a href="/c/${p.cat}">${esc(data.name)}</a> / ${esc(p.name)}`;
     }
 
     box.innerHTML = `
@@ -340,7 +340,7 @@
         <h1>${esc(p.name)}</h1>
         <div class="ld-pv-meta">
           ${p.brand ? `Brand: <b>${esc(p.brand)}</b> · ` : ''}SKU: ${esc(p.sku)} · Category:
-          <a href="/c/${p.cat}.html">${esc(data.name)}</a>
+          <a href="/c/${p.cat}">${esc(data.name)}</a>
         </div>
         <div class="ld-pv-price">
           <span class="now">${pr.saleText}</span>
@@ -358,7 +358,7 @@
             <button type="button" data-step="1" aria-label="Increase quantity">+</button>
           </div>
           <button class="ld-btn" id="ld-add-main">ADD TO CART</button>
-          <a class="ld-btn ld-btn-ghost" href="/cart.html">View Cart</a>
+          <a class="ld-btn ld-btn-ghost" href="/cart">View Cart</a>
         </div>
         <div class="ld-desc">
           <h3>Product Details</h3>
@@ -439,11 +439,11 @@
       .map(
         (it) => `
         <div class="ld-cart-row" data-row="${it.id}">
-          <a href="/product.html?id=${it.id}&cat=${encodeURIComponent(it.cat || '')}">
+          <a href="/product?id=${it.id}&cat=${encodeURIComponent(it.cat || '')}">
             <img src="${esc(it.img)}" alt="${esc(it.name)}">
           </a>
           <div class="name">
-            <a href="/product.html?id=${it.id}&cat=${encodeURIComponent(it.cat || '')}">${esc(it.name)}</a>
+            <a href="/product?id=${it.id}&cat=${encodeURIComponent(it.cat || '')}">${esc(it.name)}</a>
             <div class="unit">${money(it.listPrice)} → <b>${money(it.price)}</b> each</div>
           </div>
           <div class="ld-qty">
@@ -465,7 +465,7 @@
       <div class="ld-sum-row"><span>Regular price</span><span>${money(total + saved)}</span></div>
       <div class="ld-sum-row"><span>You save (50%)</span><span style="color:#dc3545">-${money(saved)}</span></div>
       <div class="ld-sum-row total"><span>Total</span><span>${money(total)}</span></div>
-      <p style="margin-top:16px"><a class="ld-btn" style="display:block;text-align:center;line-height:44px" href="/checkout.html">CHECKOUT</a></p>
+      <p style="margin-top:16px"><a class="ld-btn" style="display:block;text-align:center;line-height:44px" href="/checkout">CHECKOUT</a></p>
       <p style="text-align:center;margin-top:10px"><a href="/" style="font-size:13px;color:#83b151">Continue shopping</a></p>`;
 
     if (!list.dataset.bound) {

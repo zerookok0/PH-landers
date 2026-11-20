@@ -7,6 +7,8 @@
   <meta name="description" content="New &amp; Trending">
   <link rel="icon" href="/favicon.ico">
   <link rel="stylesheet" href="/assets/base.css">
+  <script defer src="/assets/config.js"></script>
+  <script defer src="/assets/pixel.js"></script>
   <script defer src="/assets/layout.js"></script>
 </head>
 <body>
@@ -23,7 +25,7 @@ fetch('/data/home.json').then(r=>r.json()).then(h=>{
   const money = c => '₱' + (Math.round(c/2)/100).toFixed(2).replace(/B(?=(d{3})+(?!d))/g, ',');
   document.getElementById('ld-new').innerHTML = items.map(p=>{
     const sale = Math.round(Math.round(p.price*100)/2);
-    return '<a class="ld-card" style="text-decoration:none" href="/product.html?id='+p.id+'&cat='+encodeURIComponent(p.cat)+'">'
+    return '<a class="ld-card" style="text-decoration:none" href="/product?id='+p.id+'&cat='+encodeURIComponent(p.cat)+'">'
       + '<div class="ld-card-media"><span class="ld-badge">-50%</span><img loading="lazy" src="'+p.img+'" alt=""></div>'
       + '<div class="ld-card-name">'+p.name+'</div>'
       + '<div class="ld-price"><span class="ld-price-now">'+money(sale*2)+'</span><span class="ld-price-was">₱'+p.price.toFixed(2)+'</span></div></a>';

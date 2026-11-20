@@ -5,53 +5,53 @@
   const CFG = (window.LD_CONFIG = window.LD_CONFIG || {});
 
   const TOPBAR = [
-    ['Download the App', '/app.html'],
-    ['About Landers', '/about.html'],
-    ['The Landers Experience', '/experience.html'],
-    ['Delivery Areas', '/delivery-areas.html'],
-    ['Track Orders', '/track.html'],
+    ['Download the App', '/app'],
+    ['About Landers', '/about'],
+    ['The Landers Experience', '/experience'],
+    ['Delivery Areas', '/delivery-areas'],
+    ['Track Orders', '/track'],
   ];
 
   const FOOTER = [
     {
       title: 'Customer Service',
       links: [
-        ['Help Center', '/help.html'],
-        ['Contact Us', '/help.html#contact'],
-        ['How to Shop Online', '/how-to-shop.html'],
-        ['How to Apply Membership', '/membership.html'],
-        ['Track and Trace', '/track.html'],
+        ['Help Center', '/help'],
+        ['Contact Us', '/help#contact'],
+        ['How to Shop Online', '/how-to-shop'],
+        ['How to Apply Membership', '/membership'],
+        ['Track and Trace', '/track'],
       ],
     },
     {
       title: 'About Landers',
       links: [
-        ['About Landers', '/about.html'],
-        ['The Landers Experience', '/experience.html'],
-        ['Delivery Areas', '/delivery-areas.html'],
-        ['Store Locator', '/store.html'],
-        ['Careers at Landers', '/careers.html'],
-        ['Landers for Business', '/business.html'],
+        ['About Landers', '/about'],
+        ['The Landers Experience', '/experience'],
+        ['Delivery Areas', '/delivery-areas'],
+        ['Store Locator', '/store'],
+        ['Careers at Landers', '/careers'],
+        ['Landers for Business', '/business'],
       ],
     },
     {
       title: 'Policies',
       links: [
-        ['Terms and Conditions', '/terms-and-conditions.html'],
-        ['Security & Privacy Policy', '/privacy.html'],
-        ['BIR Registration', '/bir-registration.html'],
-        ['How to Use Voucher', '/help.html#voucher'],
-        ['How to Save Credit Card', '/help.html#save-card'],
+        ['Terms and Conditions', '/terms-and-conditions'],
+        ['Security & Privacy Policy', '/privacy'],
+        ['BIR Registration', '/bir-registration'],
+        ['How to Use Voucher', '/help#voucher'],
+        ['How to Save Credit Card', '/help#save-card'],
       ],
     },
     {
       title: 'Membership',
       links: [
-        ['Apply Membership', '/membership.html'],
-        ['Renew Membership', '/membership.html#renew'],
-        ['Membership Benefits', '/membership.html#benefits'],
-        ['Digital Membership Card', '/membership.html#digital'],
-        ['Rewards Hub', '/membership.html#rewards'],
+        ['Apply Membership', '/membership'],
+        ['Renew Membership', '/membership#renew'],
+        ['Membership Benefits', '/membership#benefits'],
+        ['Digital Membership Card', '/membership#digital'],
+        ['Rewards Hub', '/membership#rewards'],
       ],
     },
   ];
@@ -108,17 +108,17 @@
             <a class="ld-logo" href="/" aria-label="Landers Superstore">
               <img src="${LANDERS_LOGO}" alt="Landers Superstore" width="140" height="40">
             </a>
-            <form class="ld-search" role="search" action="/search.html" method="get">
+            <form class="ld-search" role="search" action="/search" method="get">
               <input type="search" name="q" placeholder="Search for products, brands and more" aria-label="Search">
               <button type="submit" aria-label="Search">${ICON.search}<span>SEARCH</span></button>
             </form>
             <div class="ld-head-actions">
-              <a class="ld-loc" href="/delivery-areas.html" title="Delivery location">
+              <a class="ld-loc" href="/delivery-areas" title="Delivery location">
                 ${ICON.pin}<span>Enter Your Delivery Location</span>
               </a>
-              <a class="ld-head-link" href="/membership.html">Sign Up</a>
-              <a class="ld-head-link" href="/membership.html#login">Login</a>
-              <a class="ld-cart-btn" href="/cart.html">
+              <a class="ld-head-link" href="/membership">Sign Up</a>
+              <a class="ld-head-link" href="/membership#login">Login</a>
+              <a class="ld-cart-btn" href="/cart">
                 ${ICON.cart}
                 <span>Cart</span>
                 <span class="ld-cart-count" id="ld-cart-count">0</span>
@@ -145,17 +145,17 @@
     } catch (e) {
       cats = [];
     }
-    const here = location.pathname;
+    const here = location.pathname.replace(/\/+$/, '') || '/';
     const rows = [
-      `<a class="ld-side-item ld-side-new" href="/new-trending.html"><span>NEW!</span> Selection by Landers</a>`,
-      `<a class="ld-side-item" href="/new-trending.html">New &amp; Trending</a>`,
-      `<a class="ld-side-item" href="/promotions.html">Promotions</a>`,
+      `<a class="ld-side-item ld-side-new" href="/promotions"><span>NEW!</span> Selection by Landers</a>`,
+      `<a class="ld-side-item" href="/new-trending">New &amp; Trending</a>`,
+      `<a class="ld-side-item" href="/promotions">Promotions</a>`,
       `<div class="ld-side-sep"></div>`,
       ...cats
         .filter((c) => c.slug !== 'uncategorized')
         .map(
           (c) =>
-            `<a class="ld-side-item${here === `/c/${c.slug}.html` ? ' is-active' : ''}" href="/c/${c.slug}.html">
+            `<a class="ld-side-item${here === `/c/${c.slug}` ? ' is-active' : ''}" href="/c/${c.slug}">
                <span class="ld-side-name">${c.name}</span>
                <span class="ld-side-count">${c.count}</span>
              </a>`
@@ -207,8 +207,8 @@
           <div class="ld-footer-bottom">
             <div>© ${new Date().getFullYear()} Landers Superstore — clone build for internal review.</div>
             <div class="ld-apps">
-              <a href="/app.html"><img src="/assets/app-store.png" alt="App Store"></a>
-              <a href="/app.html"><img src="/assets/google-play.png" alt="Google Play"></a>
+              <a href="/app"><img src="/assets/app-store.png" alt="App Store"></a>
+              <a href="/app"><img src="/assets/google-play.png" alt="Google Play"></a>
             </div>
           </div>
         </div>

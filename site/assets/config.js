@@ -37,7 +37,7 @@ window.LD_CONFIG = {
     mediaTitle: '50% OFF',
     mediaSubtitle: 'STORE WIDE',
     cta: 'SHOP THE SALE',
-    ctaHref: '/promotions.html',
+    ctaHref: '/promotions',
     dismiss: 'Maybe later',
   },
 

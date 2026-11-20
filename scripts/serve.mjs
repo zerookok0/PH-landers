@@ -86,6 +86,23 @@ const toRequest = (req, body) => {
   });
 };
 
+/* 本地模拟 Pages 的 env.ASSETS（顺便复刻 clean URL：/x 也能取到 x.html） */
+const mkAssets = (origin) => ({
+  async fetch(input, init = {}) {
+    const href = typeof input === 'string' ? input : input.url;
+    const u = new URL(href, origin);
+    const candidates = [u.pathname, u.pathname.replace(/\/+$/, '') + '.html', u.pathname + 'index.html'];
+    for (const rel of candidates) {
+      const file = path.join(DIST, decodeURIComponent(rel));
+      if (fs.existsSync(file) && fs.statSync(file).isFile()) {
+        const type = MIME[path.extname(file).toLowerCase()] || 'application/octet-stream';
+        return new Response(fs.readFileSync(file), { status: 200, headers: { 'Content-Type': type } });
+      }
+    }
+    return new Response('not found', { status: 404 });
+  },
+});
+
 const loadFn = async (file) => {
   const { pathToFileURL } = await import('node:url');
   return import(pathToFileURL(path.join(ROOT, 'functions', file)).href + `?t=${Date.now()}`);
@@ -135,8 +152,23 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  // ---- /order/<单号> 走真 Function（和线上一致） ----
+  if (pathname.startsWith('/order/')) {
+    try {
+      const mod = await loadFn('order/[[path]].js');
+      const request = toRequest(req, Buffer.alloc(0));
+      const out = await mod.onRequestGet({ request, env: { ASSETS: mkAssets(new URL(req.url, `http://${req.headers.host || '127.0.0.1'}`).origin) } });
+      headers(res, out.headers.get('Content-Type') || 'text/html; charset=utf-8');
+      res.statusCode = out.status;
+      return res.end(await out.text());
+    } catch (e) {
+      headers(res, 'text/plain; charset=utf-8');
+      res.statusCode = 500;
+      return res.end('order function error: ' + (e && e.message));
+    }
+  }
+
   // ---- 路由 ----
-  if (pathname.startsWith('/order/')) return sendFile(res, path.join(DIST, 'order.html'));
   if (pathname === '/checkout' || pathname === '/checkout/') return sendFile(res, path.join(DIST, 'checkout.html'));
   if (pathname === '/' || pathname === '') return sendFile(res, path.join(DIST, 'index.html'));
 

@@ -144,15 +144,16 @@ const main = async () => {
     check(r2.status === 200 && t2.ok === true && t2.order_number === order, '/api/checkout 幂等（重复提交同号同结果）');
   }
 
-  // 6. 成功页 rewrite
+  // 6. 成功页：Function 强制 200，不跳转（Pages 的 clean URL 会把 /order.html 308 成 /order）
   {
     const { res, text } = await get('/order/ORD-20261120-TEST');
     check(res.status === 200, 'GET /order/<单号> 返回 200');
+    check(!res.headers.get('location'), '/order/<单号> 无 Location（不跳转）');
     check(text.includes('ld-order-no'), '成功页含单号占位节点');
   }
 
   // 7. 站点自身的路由
-  for (const p of ['/', '/cart.html', '/data/categories.json', '/data/home.json', '/terms-and-conditions.html', '/privacy.html']) {
+  for (const p of ['/', '/cart', '/data/categories.json', '/data/home.json', '/terms-and-conditions', '/privacy', '/promotions', '/new-trending', '/membership', '/help']) {
     const { res } = await get(p);
     check(res.status === 200, `GET ${p} 返回 200`, `status=${res.status}`);
   }
@@ -161,13 +162,13 @@ const main = async () => {
   {
     const cats = JSON.parse((await get('/data/categories.json')).text);
     const first = cats.find((c) => c.slug !== 'uncategorized');
-    const { res } = await get(`/c/${first.slug}.html`);
-    check(res.status === 200, `类目页 /c/${first.slug}.html 返回 200`);
+    const { res } = await get(`/c/${first.slug}`);
+    check(res.status === 200, `类目页 /c/${first.slug} 返回 200`);
 
     const cat = JSON.parse((await get(`/data/cat/${first.slug}.json`)).text);
     check(cat.items.length > 0, `类目数据非空（${cat.items.length} 条）`);
     const p0 = cat.items[0];
-    const prod = await get(`/product.html?id=${p0.id}&cat=${first.slug}`);
+    const prod = await get(`/product?id=${p0.id}&cat=${first.slug}`);
     check(prod.res.status === 200, '商品页返回 200');
     check(typeof p0.img === 'string' && p0.img.startsWith('https://assets.landers.ph/'), '商品图指向原站 CDN');
   }

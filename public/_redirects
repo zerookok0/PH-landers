@@ -1,8 +1,8 @@
-# /order/<order_number> 由前端决定跳转目标，这里用 200 rewrite 保住 URL 与状态码
-/order/*    /order.html    200
-
-# 旧路径兼容
-/index.html          /                    301
-/promotions          /promotions.html     301
-/new-trending        /new-trending.html   301
-/terms-and-conditions/  /terms-and-conditions.html  301
+# Cloudflare Pages 重写规则
+#
+# ⚠ 这里只留真正需要的规则，且**只写 200 rewrite，绝不写 "/x → /x.html 301"**：
+#   Pages 的 clean URLs 本身会把 /x.html 308 到 /x，两条规则互指就会 ERR_TOO_MANY_REDIRECTS
+#   （本站 v1 就是这么把 /promotions、/new-trending 弄挂的）。
+#
+# /order/<order_number> 由 Functions 处理（functions/order/[[path]].js），
+# 不能用 "/order/*  /order.html  200"：Pages 会把目标 .html 再 308 成 /order，破坏"不跳转"。

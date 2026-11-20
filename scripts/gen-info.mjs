@@ -258,7 +258,7 @@ const PAGES = {
 <script>
 fetch('/data/categories.json').then(r=>r.json()).then(cats=>{
   document.getElementById('ld-cats').innerHTML = cats.filter(c=>c.slug!=='uncategorized')
-    .map(c=>'<a class="ld-card" style="text-decoration:none" href="/c/'+c.slug+'.html"><div class="ld-card-name" style="height:auto">'+c.name+'</div><div class="ld-card-brand">'+c.count+' products · 50% off</div></a>')
+    .map(c=>'<a class="ld-card" style="text-decoration:none" href="/c/'+c.slug+'"><div class="ld-card-name" style="height:auto">'+c.name+'</div><div class="ld-card-brand">'+c.count+' products · 50% off</div></a>')
     .join('');
 });
 </script>`,

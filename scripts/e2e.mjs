@@ -110,7 +110,7 @@ const main = async () => {
   `);
   check(home.cards > 10, 'home renders product cards', `${home.cards} cards`);
   check(home.navCount > 5, 'sidebar categories injected', `${home.navCount} links`);
-  check(/\/product\.html\?id=\d+/.test(home.firstHref), 'product link shape', home.firstHref);
+  check(/\/product\?id=\d+/.test(home.firstHref), 'product link shape', home.firstHref);
 
   // 2. add to cart
   const added = await evaluate(`
@@ -149,7 +149,7 @@ const main = async () => {
   // 3. product page
   await evaluate(`
     const cart = JSON.parse(localStorage.getItem('ld_cart'));
-    location.href = '/product.html?id=' + cart[0].id + '&cat=' + cart[0].cat;
+    location.href = '/product?id=' + cart[0].id + '&cat=' + cart[0].cat;
     return true;
   `);
   await sleep(2600);
@@ -172,7 +172,7 @@ const main = async () => {
   check(pd.related > 0, 'related products rendered', `${pd.related} cards`);
 
   // 4. cart page qty
-  await goto(BASE + '/cart.html');
+  await goto(BASE + '/cart');
   const cartPage = await evaluate(`
     const row = document.querySelector('.ld-cart-row');
     row.querySelector('[data-step="1"]').click();
