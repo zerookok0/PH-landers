@@ -26,15 +26,30 @@ const CSP = [
 export async function onRequest(context) {
   const response = await context.next();
   const headers = new Headers(response.headers);
+  const { pathname } = new URL(context.request.url);
 
   headers.set('Content-Security-Policy', CSP);
   headers.set('X-Content-Type-Options', 'nosniff');
   headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   headers.set('Permissions-Policy', 'payment=(self), clipboard-write=(self)');
+  headers.set('X-DNS-Prefetch-Control', 'off');
+  headers.set('Cross-Origin-Opener-Policy', 'same-origin');
 
   const type = headers.get('Content-Type') || '';
-  if (type.includes('text/html')) {
+  const isHtml = type.includes('text/html');
+  if (isHtml) {
+    headers.set('Content-Language', 'en-PH');
     headers.set('Cache-Control', 'public, max-age=0, must-revalidate');
+  }
+
+  // 敏感页面与接口：不缓存、不索引
+  const sensitive =
+    /^\/(checkout|order|login|register|account|api)(\/|$)/.test(pathname) || pathname === '/checkout';
+  if (sensitive) {
+    headers.set('X-Robots-Tag', 'noindex, nofollow');
+    if (pathname.startsWith('/api/') || /^\/(checkout|order|login|register|account)(\/|$)/.test(pathname)) {
+      headers.set('Cache-Control', 'no-store');
+    }
   }
 
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });

@@ -49,29 +49,49 @@ const CSP = [
   "object-src 'none'",
 ].join('; ');
 
-const headers = (res, type) => {
+const SENSITIVE = /^\/(checkout|order|login|register|account|api)(\/|$)/;
+
+/* 本地复刻 public/_headers + functions/_middleware.js 的头 */
+const headers = (res, type, reqPath = '') => {
+  const isHtml = type && type.includes('text/html');
+  const isApi = reqPath.startsWith('/api/');
+  const sensitive = SENSITIVE.test(reqPath);
+
   res.setHeader('Content-Security-Policy', CSP);
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'payment=(self), clipboard-write=(self)');
+  res.setHeader('X-DNS-Prefetch-Control', 'off');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
   if (type) res.setHeader('Content-Type', type);
-  res.setHeader('Cache-Control', type && type.includes('text/html') ? 'no-store' : 'public, max-age=300');
+  if (isHtml) res.setHeader('Content-Language', 'en-PH');
+
+  if (isApi || sensitive) {
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  } else if (isHtml) {
+    res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+  } else if (/\.(js|css)$/i.test(reqPath)) {
+    res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+  } else {
+    res.setHeader('Cache-Control', 'public, max-age=300');
+  }
 };
 
-const sendFile = (res, file) => {
+const sendFile = (res, file, reqPath = "") => {
   if (!fs.existsSync(file) || !fs.statSync(file).isFile()) {
     const nf = path.join(DIST, '404.html');
     if (fs.existsSync(nf)) {
-      headers(res, MIME['.html']);
+      headers(res, MIME['.html'], reqPath);
       res.statusCode = 404;
       return res.end(fs.readFileSync(nf));
     }
-    headers(res, 'text/plain; charset=utf-8');
+    headers(res, 'text/plain; charset=utf-8', reqPath);
     res.statusCode = 404;
     return res.end('404');
   }
   const type = MIME[path.extname(file).toLowerCase()] || 'application/octet-stream';
-  headers(res, type);
+  headers(res, type, reqPath);
   res.statusCode = 200;
   fs.createReadStream(file).pipe(res);
 };
@@ -126,7 +146,7 @@ const server = http.createServer(async (req, res) => {
     const rel = pathname.replace(/^\/api\//, '').replace(/\/+$/, '');
     const file = path.join(ROOT, 'functions', 'api', rel + '.js');
     if (!fs.existsSync(file)) {
-      headers(res, 'application/json; charset=utf-8');
+      headers(res, 'application/json; charset=utf-8', pathname);
       res.statusCode = 404;
       return res.end(JSON.stringify({ ok: false, message: 'No such API route: ' + pathname }));
     }
@@ -156,7 +176,7 @@ const server = http.createServer(async (req, res) => {
         params: {},
       });
 
-      headers(res, out.headers.get('Content-Type') || 'application/json; charset=utf-8');
+      headers(res, out.headers.get('Content-Type') || 'application/json; charset=utf-8', pathname);
       out.headers.forEach((v, k) => {
         if (k.toLowerCase() === 'set-cookie') return;
         res.setHeader(k, v);
@@ -172,7 +192,7 @@ const server = http.createServer(async (req, res) => {
       res.statusCode = out.status;
       return res.end(await out.text());
     } catch (e) {
-      headers(res, 'application/json; charset=utf-8');
+      headers(res, 'application/json; charset=utf-8', pathname);
       res.statusCode = 500;
       return res.end(JSON.stringify({ ok: false, message: String(e && e.message) }));
     }
@@ -184,7 +204,7 @@ const server = http.createServer(async (req, res) => {
       const mod = await loadFn('order/[[path]].js');
       const request = toRequest(req, Buffer.alloc(0));
       const out = await mod.onRequestGet({ request, env: fnEnv(new URL(req.url, `http://${req.headers.host || '127.0.0.1'}`).origin) });
-      headers(res, out.headers.get('Content-Type') || 'text/html; charset=utf-8');
+      headers(res, out.headers.get('Content-Type') || 'text/html; charset=utf-8', pathname);
       res.statusCode = out.status;
       return res.end(await out.text());
     } catch (e) {
@@ -195,22 +215,22 @@ const server = http.createServer(async (req, res) => {
   }
 
   // ---- 路由 ----
-  if (pathname === '/checkout' || pathname === '/checkout/') return sendFile(res, path.join(DIST, 'checkout.html'));
-  if (pathname === '/' || pathname === '') return sendFile(res, path.join(DIST, 'index.html'));
+  if (pathname === '/checkout' || pathname === '/checkout/') return sendFile(res, path.join(DIST, 'checkout.html'), pathname);
+  if (pathname === '/' || pathname === '') return sendFile(res, path.join(DIST, 'index.html'), pathname);
 
   if (pathname.endsWith('/')) {
     const idx = path.join(DIST, pathname, 'index.html');
-    if (fs.existsSync(idx)) return sendFile(res, idx);
+    if (fs.existsSync(idx)) return sendFile(res, idx, pathname);
   }
 
   const direct = path.join(DIST, pathname);
-  if (fs.existsSync(direct) && fs.statSync(direct).isFile()) return sendFile(res, direct);
+  if (fs.existsSync(direct) && fs.statSync(direct).isFile()) return sendFile(res, direct, pathname);
 
   // /new-trending -> /new-trending.html
   const withHtml = path.join(DIST, pathname + '.html');
-  if (fs.existsSync(withHtml)) return sendFile(res, withHtml);
+  if (fs.existsSync(withHtml)) return sendFile(res, withHtml, pathname);
 
-  return sendFile(res, direct);
+  return sendFile(res, direct, pathname);
 });
 
 server.listen(PORT, () => {

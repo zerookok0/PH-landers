@@ -17,6 +17,7 @@
   Permissions-Policy: payment=(self), clipboard-write=(self)
   X-DNS-Prefetch-Control: off
   Cross-Origin-Opener-Policy: same-origin
+  Content-Language: en-PH
 
 # ---------- HTML ----------
 /
@@ -35,30 +36,50 @@
   Cache-Control: public, max-age=0, must-revalidate
   Content-Type: text/html; charset=utf-8
 
-# ---------- 结账 / 成功页：不缓存 ----------
+# ---------- 结账 / 成功页：不缓存、不索引 ----------
 /checkout
   Cache-Control: no-store
   Content-Type: text/html; charset=utf-8
+  Content-Language: en-PH
+  X-Robots-Tag: noindex, nofollow
 
 /checkout/*
   Cache-Control: no-store
   Content-Type: text/html; charset=utf-8
+  Content-Language: en-PH
+  X-Robots-Tag: noindex, nofollow
 
 /order/*
   Cache-Control: no-store
   Content-Type: text/html; charset=utf-8
+  Content-Language: en-PH
+  X-Robots-Tag: noindex, nofollow
 
+# ---------- 账号相关页面：不缓存、不索引 ----------
 /login
   Cache-Control: no-store
   Content-Type: text/html; charset=utf-8
+  Content-Language: en-PH
+  X-Robots-Tag: noindex, nofollow
 
 /register
   Cache-Control: no-store
   Content-Type: text/html; charset=utf-8
+  Content-Language: en-PH
+  X-Robots-Tag: noindex, nofollow
 
 /account
   Cache-Control: no-store
   Content-Type: text/html; charset=utf-8
+  Content-Language: en-PH
+  X-Robots-Tag: noindex, nofollow
+
+# ---------- API：一律不缓存、不索引 ----------
+/api/*
+  Cache-Control: no-store
+  Content-Type: application/json; charset=utf-8
+  X-Content-Type-Options: nosniff
+  X-Robots-Tag: noindex, nofollow
 
 # ---------- 静态资源 ----------
 # js/css 必须每次回源验证：文件名没有内容哈希，长时间 immutable 会让浏览器
