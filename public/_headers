@@ -17,24 +17,27 @@
   Permissions-Policy: payment=(self), clipboard-write=(self)
   X-DNS-Prefetch-Control: off
   Cross-Origin-Opener-Policy: same-origin
-  Content-Language: en-PH
 
 # ---------- HTML ----------
 /
   Cache-Control: public, max-age=0, must-revalidate
   Content-Type: text/html; charset=utf-8
+  Content-Language: en-PH
 
 /index.html
   Cache-Control: public, max-age=0, must-revalidate
   Content-Type: text/html; charset=utf-8
+  Content-Language: en-PH
 
 /*.html
   Cache-Control: public, max-age=0, must-revalidate
   Content-Type: text/html; charset=utf-8
+  Content-Language: en-PH
 
 /c/*
   Cache-Control: public, max-age=0, must-revalidate
   Content-Type: text/html; charset=utf-8
+  Content-Language: en-PH
 
 # ---------- 结账 / 成功页：不缓存、不索引 ----------
 /checkout
