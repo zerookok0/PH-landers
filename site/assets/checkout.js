@@ -117,6 +117,63 @@
     window.LD?.pixel?.initiateCheckout?.(items, total);
   } catch (e) {}
 
+  /* ---------- 4b. 会员资料 + 送货地址预填 ---------- */
+  const setVal = (id, v) => {
+    const el = document.getElementById(id);
+    if (el && v && !el.value) el.value = v;
+  };
+
+  const renderDeliver = () => {
+    const box = document.getElementById('ld-checkout-deliver');
+    if (!box) return;
+    const loc = window.LD?.location?.get?.();
+    if (!loc) {
+      box.innerHTML =
+        'No delivery address yet — <button type="button" class="ld-linklike" id="ld-checkout-pick-loc">choose your location</button>';
+      document.getElementById('ld-checkout-pick-loc')?.addEventListener('click', () => {
+        window.LD.location.open({ onSave: () => renderDeliver() });
+      });
+      return;
+    }
+    box.innerHTML = `Delivering to <b>${loc.barangay ? loc.barangay + ', ' : ''}${loc.city}</b> · <button type="button" class="ld-linklike" id="ld-checkout-change-loc">change</button>`;
+    document.getElementById('ld-checkout-change-loc')?.addEventListener('click', () => {
+      window.LD.location.open({ onSave: () => renderDeliver() });
+    });
+  };
+
+  (async () => {
+    const loc = window.LD?.location?.get?.();
+    if (loc) {
+      setVal('t-city', loc.city);
+      setVal('t-zip', loc.zip);
+      setVal('t-addr', loc.barangay);
+    }
+    renderDeliver();
+    window.addEventListener('ld:location-changed', () => {
+      const l = window.LD.location.get();
+      if (l) {
+        const cityEl = document.getElementById('t-city');
+        const zipEl = document.getElementById('t-zip');
+        const addrEl = document.getElementById('t-addr');
+        if (cityEl && !cityEl.value) cityEl.value = l.city || '';
+        if (zipEl && !zipEl.value) zipEl.value = l.zip || '';
+        if (addrEl && !addrEl.value) addrEl.value = l.barangay || '';
+      }
+      renderDeliver();
+    });
+
+    const user = await window.LD?.auth?.me?.();
+    if (user) {
+      setVal('t-name', user.name);
+      setVal('t-email', user.email);
+      setVal('t-phone', user.phone);
+      if (user.address) setVal('t-addr', user.address);
+      if (user.city) setVal('t-city', user.city);
+      if (user.zip) setVal('t-zip', user.zip);
+    }
+    snapshot();
+  })();
+
   /* ---------- 5. /api/cart 双保险：服务端口径对齐（契约 §5.2） ---------- */
   (async () => {
     try {
@@ -150,6 +207,20 @@
     };
     try {
       snapshot();
+    } catch (err) {}
+    try {
+      // 订单历史（账号页展示）：同一单号只记一次
+      const list = JSON.parse(localStorage.getItem('ld_orders') || '[]');
+      const arr = Array.isArray(list) ? list : [];
+      if (!arr.some((o) => o.order_number === order.order_number)) {
+        arr.unshift({
+          order_number: order.order_number,
+          at: Date.now(),
+          total: order.total,
+          items: itemsWithIds,
+        });
+        localStorage.setItem('ld_orders', JSON.stringify(arr.slice(0, 30)));
+      }
     } catch (err) {}
     try {
       window.LD?.pixel?.purchase?.(order);

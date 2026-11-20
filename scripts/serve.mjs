@@ -112,37 +112,54 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || '127.0.0.1'}`);
   const pathname = decodeURIComponent(url.pathname);
 
-  // ---- API ----
-  if (pathname === '/api/cart' || pathname === '/api/cart/') {
-    const chunks = [];
-    for await (const c of req) chunks.push(c);
-    const body = Buffer.concat(chunks);
-    try {
-      const mod = await loadFn('api/cart.js');
-      const request = toRequest(req, body);
-      const fn =
-        req.method === 'GET' ? mod.onRequestGet : req.method === 'OPTIONS' ? mod.onRequestOptions : mod.onRequest;
-      const out = await fn({ request, env: {} });
+  // ---- API：/api/** 一律映射到 functions/api/**（和 Pages 的约定一致） ----
+  if (pathname.startsWith('/api/')) {
+    const rel = pathname.replace(/^\/api\//, '').replace(/\/+$/, '');
+    const file = path.join(ROOT, 'functions', 'api', rel + '.js');
+    if (!fs.existsSync(file)) {
       headers(res, 'application/json; charset=utf-8');
-      res.statusCode = out.status;
-      return res.end(await out.text());
-    } catch (e) {
-      headers(res, 'application/json; charset=utf-8');
-      res.statusCode = 500;
-      return res.end(JSON.stringify({ ok: false, message: String(e && e.message) }));
+      res.statusCode = 404;
+      return res.end(JSON.stringify({ ok: false, message: 'No such API route: ' + pathname }));
     }
-  }
 
-  if (pathname === '/api/checkout' || pathname === '/api/checkout/') {
     const chunks = [];
     for await (const c of req) chunks.push(c);
     const body = Buffer.concat(chunks);
+
     try {
-      const mod = await loadFn('api/checkout.js');
+      const mod = await loadFn(path.join('api', rel + '.js'));
       const request = toRequest(req, body);
-      const fn = req.method === 'POST' ? mod.onRequestPost : mod.onRequest;
-      const out = await fn({ request, env: {} });
-      headers(res, 'application/json; charset=utf-8');
+      const byMethod =
+        (req.method === 'GET' && mod.onRequestGet) ||
+        (req.method === 'POST' && mod.onRequestPost) ||
+        (req.method === 'OPTIONS' && mod.onRequestOptions) ||
+        mod.onRequest ||
+        mod.onRequestGet ||
+        mod.onRequestPost;
+      if (!byMethod) {
+        headers(res, 'application/json; charset=utf-8');
+        res.statusCode = 405;
+        return res.end(JSON.stringify({ ok: false, message: 'Method not allowed' }));
+      }
+      const out = await byMethod({
+        request,
+        env: { ASSETS: mkAssets(new URL(req.url, `http://${req.headers.host || '127.0.0.1'}`).origin) },
+        params: {},
+      });
+
+      headers(res, out.headers.get('Content-Type') || 'application/json; charset=utf-8');
+      out.headers.forEach((v, k) => {
+        if (k.toLowerCase() === 'set-cookie') return;
+        res.setHeader(k, v);
+      });
+      const cookies =
+        typeof out.headers.getSetCookie === 'function'
+          ? out.headers.getSetCookie()
+          : out.headers.get('set-cookie')
+          ? [out.headers.get('set-cookie')]
+          : [];
+      if (cookies.length) res.setHeader('Set-Cookie', cookies);
+
       res.statusCode = out.status;
       return res.end(await out.text());
     } catch (e) {

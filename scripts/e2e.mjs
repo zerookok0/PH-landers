@@ -275,7 +275,101 @@ const main = async () => {
   check(/[\u20B1]/.test(after.total), 'success page shows amount', after.total);
   check(after.purchaseCount === 0, 'Purchase not double-counted on the success page (deduped)');
 
-  // 7. console errors
+  // 8. 送货地址弹窗
+  await goto(BASE + '/');
+  const locPick = await evaluate(`
+    document.getElementById('ld-loc-btn').click();
+    await new Promise(r => setTimeout(r, 400));
+    const modal = document.getElementById('ld-loc-modal');
+    const opened = !!modal && modal.classList.contains('is-on') && !!document.getElementById('ld-loc-city');
+    const city = document.getElementById('ld-loc-city');
+    city.value = 'Makati';
+    document.getElementById('ld-loc-brgy').value = 'Poblacion';
+    document.getElementById('ld-loc-save').click();
+    await new Promise(r => setTimeout(r, 350));
+    return {
+      modalShown: opened,
+      label: document.querySelector('.ld-loc-text')?.textContent || '',
+      saved: JSON.parse(localStorage.getItem('ld_loc') || 'null'),
+      clickable: !!document.getElementById('ld-loc-btn'),
+    };
+  `);
+  check(locPick.clickable && locPick.modalShown, 'delivery location modal opens from header');
+  check(locPick.saved && locPick.saved.city === 'Makati', 'location saved', JSON.stringify(locPick.saved));
+  check(/Makati/.test(locPick.label), 'header shows the chosen location', locPick.label);
+
+  // 9. 注册（会员申请）
+  await goto(BASE + '/register');
+  await evaluate(`
+    const set = (id, v) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); };
+    set('ld-name', 'Juan Dela Cruz');
+    set('ld-email', 'juan@example.com');
+    set('ld-phone', '+63 917 123 4567');
+    set('ld-password', 'secret123');
+    set('ld-password2', 'secret123');
+    set('ld-address', '12 Mabini St, Poblacion');
+    set('ld-zip', '1210');
+    document.getElementById('ld-city').value = 'Makati';
+    document.getElementById('ld-terms').checked = true;
+    document.getElementById('ld-register-submit').click();
+    return true;
+  `);
+  await sleep(3000);
+  const reg = await evaluate(`
+    return {
+      url: location.pathname,
+      name: (document.getElementById('ld-profile')?.textContent || '').includes('Juan Dela Cruz'),
+      chip: document.getElementById('ld-account-chip')?.textContent || '',
+      header: document.getElementById('ld-account')?.textContent || '',
+    };
+  `);
+  check(reg.url === '/account', 'registration lands on /account', reg.url);
+  check(reg.name === true, 'profile shows the registered name');
+  check(/member/i.test(reg.chip), 'membership tier shown', reg.chip);
+  check(/Hi, Juan/.test(reg.header), 'header shows the signed-in member', reg.header.trim().slice(0, 40));
+
+  // 9b. 结账页预填（姓名/邮箱来自账号）
+  await goto(BASE + '/checkout');
+  const prefill = await evaluate(`
+    return {
+      name: document.getElementById('t-name')?.value || '',
+      email: document.getElementById('t-email')?.value || '',
+      city: document.getElementById('t-city')?.value || '',
+      deliver: document.getElementById('ld-checkout-deliver')?.textContent || '',
+    };
+  `);
+  check(prefill.name === 'Juan Dela Cruz' && prefill.email === 'juan@example.com', 'checkout prefilled from account', prefill.name);
+  check(/Makati/.test(prefill.deliver), 'checkout shows delivery location', prefill.deliver.trim());
+
+  // 10. 退出 + 重新登录
+  await goto(BASE + '/account');
+  await evaluate(`document.getElementById('ld-logout').click(); return true;`);
+  await sleep(2200);
+  const out = await evaluate(`
+    return { url: location.pathname, header: document.getElementById('ld-account')?.textContent || '' };
+  `);
+  check(out.url === '/' || out.url === '/login', 'logout leaves the account page', out.url);
+  check(/Login/.test(out.header), 'header back to Sign Up / Login', out.header.trim());
+
+  await goto(BASE + '/login');
+  await evaluate(`
+    const set = (id, v) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); };
+    set('ld-email', 'juan@example.com');
+    set('ld-password', 'secret123');
+    document.getElementById('ld-login-submit').click();
+    return true;
+  `);
+  await sleep(2600);
+  const login = await evaluate(`
+    return {
+      url: location.pathname,
+      name: (document.getElementById('ld-profile')?.textContent || '').includes('Juan'),
+    };
+  `);
+  check(login.url === '/account', 'login returns to /account', login.url);
+  check(login.name === true, 'login restores the registered profile');
+
+  // 11. console errors
   const errors = events
     .filter((e) => e.method === 'Runtime.exceptionThrown' || (e.method === 'Runtime.consoleAPICalled' && e.params.type === 'error'))
     .map((e) => JSON.stringify(e.params).slice(0, 160));

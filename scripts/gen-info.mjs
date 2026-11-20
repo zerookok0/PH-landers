@@ -25,6 +25,8 @@ const shell = (title, body, { desc = '' } = {}) => `<!doctype html>
   <link rel="stylesheet" href="/assets/base.css">
   <script defer src="/assets/config.js"></script>
   <script defer src="/assets/pixel.js"></script>
+  <script defer src="/assets/location.js"></script>
+  <script defer src="/assets/auth.js"></script>
   <script defer src="/assets/layout.js"></script>
 </head>
 <body>

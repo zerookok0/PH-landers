@@ -113,11 +113,13 @@
               <button type="submit" aria-label="Search">${ICON.search}<span>SEARCH</span></button>
             </form>
             <div class="ld-head-actions">
-              <a class="ld-loc" href="/delivery-areas" title="Delivery location">
-                ${ICON.pin}<span>Enter Your Delivery Location</span>
-              </a>
-              <a class="ld-head-link" href="/membership">Sign Up</a>
-              <a class="ld-head-link" href="/membership#login">Login</a>
+              <button class="ld-loc" id="ld-loc-btn" type="button" title="Choose your delivery location">
+                ${ICON.pin}<span class="ld-loc-text">Enter Your Delivery Location</span>
+              </button>
+              <span class="ld-account-links" id="ld-account">
+                <a class="ld-head-link" href="/register">Sign Up</a>
+                <a class="ld-head-link" href="/login">Login</a>
+              </span>
               <a class="ld-cart-btn" href="/cart">
                 ${ICON.cart}
                 <span>Cart</span>
@@ -132,6 +134,7 @@
     paintBadge();
     fillSidebar();
     bindBurger();
+    window.dispatchEvent(new CustomEvent('ld:header-ready'));
   }
 
   /* ---------- 左侧分类栏（原站是侧边栏，不是顶栏） ---------- */

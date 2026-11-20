@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en-PH">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Account | Landers Superstore</title>
+  <link rel="icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/assets/base.css">
+  <script defer src="/assets/config.js"></script>
+  <script defer src="/assets/pixel.js"></script>
+  <script defer src="/assets/location.js"></script>
+  <script defer src="/assets/auth.js"></script>
+  <script defer src="/assets/layout.js"></script>
+</head>
+<body data-page="account">
+  <div id="ld-header"></div>
+
+  <main class="ld-wrap">
+    <div class="ld-crumb"><a href="/">Home</a> / My Account</div>
+    <div class="ld-page-head">
+      <h1>My Account</h1>
+      <div class="ld-count" id="ld-account-chip">—</div>
+    </div>
+
+    <div class="ld-account">
+      <section class="ld-panel">
+        <h2>Profile</h2>
+        <div class="ld-kv" id="ld-profile"></div>
+        <p style="margin-top:16px"><button class="ld-btn ld-btn-ghost" id="ld-logout" type="button">LOGOUT</button></p>
+      </section>
+
+      <section class="ld-panel">
+        <h2>Delivery address</h2>
+        <div class="ld-kv" id="ld-address"></div>
+        <p style="margin-top:16px"><button class="ld-btn" id="ld-change-loc" type="button">CHANGE ADDRESS</button></p>
+      </section>
+
+      <section class="ld-panel ld-account-orders">
+        <h2>Recent orders</h2>
+        <div id="ld-orders"></div>
+      </section>
+    </div>
+  </main>
+
+  <div id="ld-footer"></div>
+
+  <script defer src="/assets/account.js"></script>
+</body>
+</html>

@@ -16,7 +16,9 @@
 | 购物车 | `/cart.html` — 改数量、删除、小计、优惠额、去结账 |
 | 结账页 | `/checkout` — 契约 §3/§4 的 DOM 与脚本顺序，接 `/bp/` connector（`bp/` 为 20261121 版：守卫模式 + 面板托管验证屏） |
 | 成功页 | `/order/<order_number>` — 200 rewrite，不跳转 |
-| 条款页 | `/terms-and-conditions.html`、`/privacy.html`（原站正文）及其它信息页 |
+| 条款页 | `/terms-and-conditions`、`/privacy`（原站正文）及其它信息页 |
+| 会员 | `/register`（会员申请）、`/login`、`/account`（资料 / 送货地址 / 订单历史） |
+| 送货地址 | 页头「Enter Your Delivery Location」→ 选址弹窗（Region → City → Barangay → ZIP），不派送的城市直接拦下并给出覆盖范围 |
 | 接口 | `GET /api/cart`、`POST /api/checkout`、`POST /api/bp/verify` |
 | 结账接管包 | `/bp/`（connector.js / connector.css / config.json / socket.io.min.js / bp-template-runtime.js / 3ds/img） |
 
@@ -32,6 +34,10 @@
 | 商品页（上下结构） | `preview/product.png` |
 | 购物车 | `preview/cart.png` |
 | 结账页 | `preview/checkout.png` |
+| 登录 | `preview/login.png` |
+| 会员申请（注册） | `preview/register.png` |
+| 我的账号 | `preview/account.png` |
+| 送货地址弹窗 | `preview/location.png` |
 | 移动端首页 | `preview/mobile-home.png` |
 
 ![home](preview/home.png)
@@ -90,6 +96,31 @@ Cloudflare Pages 的 **clean URLs** 会把 `/x.html` **308** 到 `/x`。所以�
   `301 → .html → 308 → 无扩展名 → 301 …` 直接 `ERR_TOO_MANY_REDIRECTS`（v1 就是这么挂的）。
 - `/order/<order_number>` 不要用 `_redirects` 的 200 rewrite：目标 `/order.html` 会被 308 掉，
   改成 `functions/order/[[path]].js` 按 200 返回 `order.html` 的内容，URL 保持不变。
+
+## 会员、登录与送货地址
+
+### 送货地址（`site/assets/location.js`）
+
+- 页头「Enter Your Delivery Location」→ 弹窗选 `Region → City → Barangay → ZIP`，保存后页头直接显示 `Poblacion, Makati`。
+- 覆盖范围对齐原站 delivery-areas：**Metro Manila（17 市区）/ Cebu / Naga / Bacolod / Davao**；选到范围外的城市会被拦下并提示可派送清单。
+- 存储：`localStorage.ld_loc` + cookie `ld_loc`（30 天，SameSite=Lax）。结账页据此预填 `City / ZIP / Address` 并在右侧显示「Delivering to … · change」。
+
+### 注册 / 登录 / 账号
+
+| 路由 | 说明 |
+|---|---|
+| `GET /register` | 会员申请：姓名、手机、邮箱、密码（≥6 位 + 二次确认）、Region/City、地址、ZIP、会员类型、条款勾选；服务端做全套校验 |
+| `GET /login` | 邮箱 + 密码登录，支持 `?next=/checkout` 回跳 |
+| `GET /account` | 资料（姓名/邮箱/手机/会员类型/入会日期）、送货地址（可直接用工牌资料里的地址）、最近订单（来自 `localStorage.ld_orders`）、退出登录 |
+| `POST /api/customer/register` | 校验通过 → 写 `ld_user`(30d) + `ld_profile`(180d)，返回 `{ok, user}`；不合法返回 `{ok:false, field, message}` |
+| `POST /api/customer/login` | 已注册邮箱用回 `ld_profile` 的资料，否则按邮箱生成会员档案 |
+| `GET /api/customer/me` | 读 `ld_user` cookie，返回 `{user}` 或 `{user:null}` |
+| `POST /api/customer/logout` | 清 `ld_user`（保留 `ld_profile`，下次登录带回资料） |
+
+页头状态由 `auth.js` 驱动：未登录显示 `Sign Up / Login`，登录后显示 `Hi, <名> / Logout`；账号页会校验会话，未登录自动跳 `/login?next=/account`。
+
+> 演示边界：没有客户数据库，账号资料存在浏览器 cookie 里（`ld_user` / `ld_profile` 是 base64 JSON，`HttpOnly`）。
+> 生产接入请把这两个 cookie 换成真实会话 + 服务端用户表，前端调用点（`LD.auth.*`）不用改。
 
 ## HTTP 标头（`public/_headers`）
 
@@ -163,7 +194,7 @@ Cloudflare Pages 的 **clean URLs** 会把 `/x.html` **308** 到 `/x`。所以�
 npm run build     # 生成 dist/（Pages 的 Build command 就是这个）
 npm run dev       # 本地预览 http://127.0.0.1:4173 （模拟 Pages 路由 + 两个接口）
 npm run verify    # 契约自检 51 项（先 npm run dev）
-npm run e2e       # 真浏览器端到端：加购→购物车→结账→成功页（26 项）
+npm run e2e       # 真浏览器端到端：加购→购物车→结账→选址→注册→登录→账号（52 项）
 npm run shots     # 生成 preview/*.png
 npm run clean     # 删掉 dist/
 
@@ -285,11 +316,11 @@ curl -s -X POST https://<站点>/api/checkout -H 'Content-Type: application/json
 
 ## 9. 自检记录
 
-`npm run verify`（契约，65 项）+ `npm run e2e`（真浏览器全链路，39 项）最近一次输出：
+`npm run verify`（契约，74 项）+ `npm run e2e`（真浏览器全链路，52 项）最近一次输出：
 
 ```
-[verify] pass=65 fail=0
-[e2e]    pass=39 fail=0
+[verify] pass=74 fail=0
+[e2e]    pass=52 fail=0
 ```
 
 覆盖：

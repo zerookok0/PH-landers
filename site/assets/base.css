@@ -60,7 +60,10 @@ ul { margin: 0; padding: 0; list-style: none; }
 
 .ld-head-actions { display: flex; align-items: center; gap: 14px; }
 .ld-loc { display: flex; align-items: center; gap: 6px; color: var(--green); font-size: 12px; font-weight: 600; max-width: 190px; }
+button.ld-loc { border: 0; background: transparent; padding: 0; font-family: inherit; cursor: pointer; text-align: left; }
+button.ld-loc:hover { color: var(--green-dark); }
 .ld-loc span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ld-account-links { display: flex; align-items: center; gap: 12px; }
 .ld-head-link { font-size: 13px; color: var(--ink); }
 .ld-head-link:hover { color: var(--green); }
 .ld-cart-btn { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; background: #fff; color: var(--ink); font-size: 13px; }
@@ -320,9 +323,64 @@ ul { margin: 0; padding: 0; list-style: none; }
 .ld-doc p, .ld-doc li { font-size: 13.5px; line-height: 1.8; color: #56607a; }
 .ld-doc ul { padding-left: 20px; list-style: disc; }
 
+.ld-order-deliver { font-size: 12.5px; color: #56607a; margin: -4px 0 12px; line-height: 1.6; }
+.ld-order-deliver b { color: var(--ink-strong); }
+.ld-linklike { border: 0; background: transparent; padding: 0; color: var(--green-dark); font: inherit; font-weight: 600; cursor: pointer; text-decoration: underline; }
+.ld-linklike:hover { color: var(--green); }
+
+/* ---------- 登录 / 注册 / 账号 ---------- */
+.ld-auth { display: grid; grid-template-columns: minmax(0, 580px) 320px; gap: 24px; padding: 8px 0 48px; align-items: start; }
+.ld-auth-wide { grid-template-columns: minmax(0, 780px); }
+.ld-auth-card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 26px 28px; }
+.ld-auth-card h1 { margin: 0 0 6px; font-size: 22px; color: var(--ink-strong); }
+.ld-auth-sub { color: var(--muted); font-size: 13px; margin: 0 0 18px; }
+.ld-form-section { margin: 20px 0 10px; font-size: 12px; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.ld-form-error { min-height: 18px; color: var(--red); font-size: 13px; margin: 6px 0 12px; }
+.ld-form-error.is-on { font-weight: 600; }
+.ld-auth-submit { width: 100%; height: 48px; }
+.ld-auth-alt { margin: 16px 0 0; font-size: 13px; color: #56607a; }
+.ld-auth-alt a { color: var(--green-dark); font-weight: 600; }
+.ld-auth-note { margin: 10px 0 0; font-size: 12px; color: var(--muted); line-height: 1.6; }
+.ld-auth-aside { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 22px; }
+.ld-auth-aside h3 { margin: 0 0 12px; font-size: 15px; color: var(--ink-strong); }
+.ld-auth-aside ul { list-style: none; padding: 0; margin: 0 0 18px; }
+.ld-auth-aside li { font-size: 13px; color: #56607a; padding: 6px 0 6px 20px; position: relative; }
+.ld-auth-aside li::before { content: ''; position: absolute; left: 2px; top: 12px; width: 9px; height: 5px; border-left: 2px solid var(--green); border-bottom: 2px solid var(--green); transform: rotate(-45deg); }
+.ld-check { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: #56607a; margin: 6px 0 14px; }
+.ld-check input { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--green); }
+.ld-check a { color: var(--green-dark); font-weight: 600; }
+
+.ld-account { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; padding-bottom: 48px; align-items: start; }
+.ld-account-orders { grid-column: 1 / -1; }
+.ld-kv-row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px dashed var(--line); font-size: 13.5px; }
+.ld-kv-row:last-child { border-bottom: 0; }
+.ld-kv-row span { color: var(--muted); }
+.ld-kv-row b { color: var(--ink-strong); font-weight: 600; text-align: right; }
+.ld-order-card { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+.ld-order-card-head { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; color: var(--muted); margin-bottom: 8px; }
+.ld-order-card-head b { color: var(--green-dark); }
+.ld-order-card-total { border-top: 1px solid var(--line); margin-top: 8px; padding-top: 8px; display: flex; justify-content: space-between; font-size: 13px; color: #56607a; }
+
+/* ---------- 送货地址弹窗 ---------- */
+.ld-loc-note { min-height: 18px; font-size: 12.5px; color: var(--muted); margin-bottom: 10px; }
+.ld-loc-note.is-err { color: var(--red); font-weight: 600; }
+.ld-loc-covered { margin-top: 10px; font-size: 12.5px; color: #56607a; }
+.ld-loc-covered summary { cursor: pointer; color: var(--green-dark); font-weight: 600; }
+.ld-loc-covered ul { margin: 8px 0 0; padding-left: 18px; list-style: disc; }
+.ld-loc-covered li { margin-bottom: 4px; line-height: 1.5; }
+.ld-loc-modal .ld-modal-body { max-height: min(72vh, 640px); overflow-y: auto; }
+
+/* 页头账号 / 地址 */
+.ld-head-user { font-weight: 600; color: var(--green-dark); }
+.ld-head-logout { border: 0; background: transparent; font-size: 13px; color: var(--ink); padding: 0; font-family: inherit; }
+.ld-head-logout:hover { color: var(--red); }
+.ld-loc.is-set { color: var(--green-dark); }
+
 /* ---------- 响应式 ---------- */
 @media (max-width: 1080px) {
   .ld-shell { grid-template-columns: 1fr; gap: 0; }
+  .ld-auth { grid-template-columns: 1fr; }
+  .ld-account { grid-template-columns: 1fr; }
   .ld-side {
     position: static;
     max-height: none;

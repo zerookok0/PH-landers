@@ -112,6 +112,37 @@ const main = async () => {
   await shot('checkout', 1440, 1100, BASE + '/checkout');
   await shot('mobile-home', 390, 844, BASE + '/');
 
+  await shot('login', 1440, 1050, BASE + '/login');
+  await shot('register', 1440, 1350, BASE + '/register');
+  await shot(
+    'location',
+    1440,
+    1000,
+    BASE + '/',
+    `document.getElementById('ld-loc-btn').click();
+     await new Promise(r => setTimeout(r, 600));
+     document.getElementById('ld-loc-city').value = 'Makati';
+     document.getElementById('ld-loc-brgy').value = 'Poblacion';
+     document.getElementById('ld-loc-zip').value = '1210';
+     return true;`
+  );
+  await shot(
+    'account',
+    1440,
+    1150,
+    BASE + '/account',
+    `await fetch('/api/customer/register', {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify({ name: 'Juan Dela Cruz', email: 'juan@example.com', phone: '+639171234567',
+         password: 'secret123', membership: 'Premium', address: '12 Mabini St, Poblacion',
+         region: 'Metro Manila', city: 'Makati', zip: '1210', terms: true })
+     });
+     localStorage.setItem('ld_orders', JSON.stringify([{ order_number: 'ORD-20261121-9F2C', at: Date.now(), total: 4798, items: [{ id: 42858, name: 'Rambutan approx. 600g', qty: 2, price: 4799 }] }]));
+     location.reload();
+     return true;`
+  );
+
   ws.close();
   child.kill();
   try {

@@ -153,9 +153,50 @@ const main = async () => {
   }
 
   // 7. 站点自身的路由
-  for (const p of ['/', '/cart', '/data/categories.json', '/data/home.json', '/terms-and-conditions', '/privacy', '/promotions', '/new-trending', '/membership', '/help']) {
+  for (const p of ['/', '/cart', '/data/categories.json', '/data/home.json', '/terms-and-conditions', '/privacy', '/promotions', '/new-trending', '/membership', '/help', '/login', '/register', '/account']) {
     const { res } = await get(p);
     check(res.status === 200, `GET ${p} 返回 200`, `status=${res.status}`);
+  }
+
+  // 7b. 账号接口（注册 → me → 退出）
+  {
+    const regBody = JSON.stringify({
+      name: 'Verify Bot',
+      email: 'verify@example.com',
+      phone: '+639171112222',
+      password: 'secret123',
+      membership: 'Premium',
+      address: '1 Test Street',
+      region: 'Metro Manila',
+      city: 'Makati',
+      zip: '1210',
+      terms: true,
+    });
+    const reg = await fetch(BASE + '/api/customer/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: regBody,
+    });
+    const regJson = await reg.json().catch(() => ({}));
+    const cookie = (reg.headers.getSetCookie ? reg.headers.getSetCookie() : []).map((c) => c.split(';')[0]).join('; ');
+    check(reg.status === 200 && regJson.ok === true, 'POST /api/customer/register 成功', String(reg.status));
+    check(/ld_user=/.test(cookie), '注册写入 ld_user cookie');
+    check(!/password/i.test(JSON.stringify(regJson.user || {})), '注册响应不回传密码');
+
+    const me = await fetch(BASE + '/api/customer/me', { headers: { Cookie: cookie } });
+    const meJson = await me.json().catch(() => ({}));
+    check(me.status === 200 && meJson.user && meJson.user.email === 'verify@example.com', '/api/customer/me 能读回会话');
+
+    const bad = await fetch(BASE + '/api/customer/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...JSON.parse(regBody), city: 'Cebu City', email: 'x@y.z', password: '1' }),
+    });
+    const badJson = await bad.json().catch(() => ({}));
+    check(badJson.ok === false && !!badJson.message, '注册参数不合法时返回 ok:false + message');
+
+    const out = await fetch(BASE + '/api/customer/logout', { method: 'POST', headers: { Cookie: cookie } });
+    check(out.status === 200, 'POST /api/customer/logout 返回 200');
   }
 
   // 8. 分类页与商品页

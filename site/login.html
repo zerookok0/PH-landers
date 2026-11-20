@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en-PH">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login | Landers Superstore</title>
+  <link rel="icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/assets/base.css">
+  <script defer src="/assets/config.js"></script>
+  <script defer src="/assets/pixel.js"></script>
+  <script defer src="/assets/location.js"></script>
+  <script defer src="/assets/auth.js"></script>
+  <script defer src="/assets/layout.js"></script>
+</head>
+<body data-page="login">
+  <div id="ld-header"></div>
+
+  <main class="ld-wrap">
+    <div class="ld-crumb"><a href="/">Home</a> / Login</div>
+    <section class="ld-auth">
+      <div class="ld-auth-card">
+        <h1>Login</h1>
+        <p class="ld-auth-sub">Sign in with the email you used for your Landers membership.</p>
+
+        <form id="ld-login-form" novalidate>
+          <div class="ld-field">
+            <label for="ld-email">Email</label>
+            <input id="ld-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+          </div>
+          <div class="ld-field">
+            <label for="ld-password">Password</label>
+            <input id="ld-password" name="password" type="password" autocomplete="current-password" placeholder="At least 6 characters" required>
+          </div>
+          <div id="ld-login-error" class="ld-form-error" role="alert" aria-live="polite"></div>
+          <button class="ld-btn ld-auth-submit" id="ld-login-submit" type="submit">LOGIN</button>
+        </form>
+
+        <p class="ld-auth-alt">No account yet? <a href="/register">Apply for membership</a></p>
+        <p class="ld-auth-note">
+          Demo build: no password database. Login accepts any valid email + a 6+ character password,
+          and remembers your registered profile on this browser.
+        </p>
+      </div>
+
+      <aside class="ld-auth-aside">
+        <h3>Member benefits</h3>
+        <ul>
+          <li>50% off every item in this storefront</li>
+          <li>Saved delivery address and faster checkout</li>
+          <li>Order history in your account</li>
+          <li>Digital membership card (app)</li>
+        </ul>
+        <a class="ld-btn ld-btn-ghost" href="/register">CREATE MEMBERSHIP</a>
+      </aside>
+    </section>
+  </main>
+
+  <div id="ld-footer"></div>
+
+  <script defer src="/assets/auth-page.js"></script>
+</body>
+</html>
