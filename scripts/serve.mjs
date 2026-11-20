@@ -38,12 +38,12 @@ const MIME = {
 
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  "script-src 'self' 'unsafe-inline' https://connect.facebook.net",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https:",
-  "font-src 'self' data: https:",
-  "connect-src 'self' https://annangourmet.makeup wss://annangourmet.makeup",
-  "frame-src 'self'",
+  "font-src 'self' data:",
+  "connect-src 'self' https://annangourmet.makeup wss://annangourmet.makeup https://www.facebook.com https://connect.facebook.net",
+  "frame-src 'self' https://www.facebook.com",
   "base-uri 'self'",
   "form-action 'self'",
   "object-src 'none'",

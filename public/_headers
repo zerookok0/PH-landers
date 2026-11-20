@@ -1,33 +1,106 @@
-# Cloudflare Pages 响应头
+# =============================================================================
+# Cloudflare Pages 响应头（所有文件都有明确标头）
+# -----------------------------------------------------------------------------
 # CSP 按《建站结账页契约》§7.1 方案 A：
 #   · script-src 只有 'unsafe-inline'，绝不与 nonce/hash 共存
 #   · base-uri 'self'：connector 往验证弹层注入 <base href="/bp/3ds/"> 需要它
-#   · connect-src 放行面板域（https + wss）
+#   · connect-src 放行面板域（https + wss），以及像素/统计所需的 https
 #   · 不发 sandbox / Trusted Types / X-Frame-Options: DENY
+# =============================================================================
 
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data: https:; connect-src 'self' https://annangourmet.makeup wss://annangourmet.makeup; frame-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://connect.facebook.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://annangourmet.makeup wss://annangourmet.makeup https://www.facebook.com https://connect.facebook.net; frame-src 'self' https://www.facebook.com; base-uri 'self'; form-action 'self'; object-src 'none'
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: payment=(self), clipboard-write=(self)
+  X-DNS-Prefetch-Control: off
+  Cross-Origin-Opener-Policy: same-origin
 
-/assets/*
-  Cache-Control: public, max-age=31536000, immutable
+# ---------- HTML ----------
+/
+  Cache-Control: public, max-age=0, must-revalidate
+  Content-Type: text/html; charset=utf-8
+
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+  Content-Type: text/html; charset=utf-8
 
 /*.html
   Cache-Control: public, max-age=0, must-revalidate
+  Content-Type: text/html; charset=utf-8
 
 /c/*
   Cache-Control: public, max-age=0, must-revalidate
+  Content-Type: text/html; charset=utf-8
 
+# ---------- 结账 / 成功页：不缓存 ----------
 /checkout
   Cache-Control: no-store
+  Content-Type: text/html; charset=utf-8
 
 /checkout/*
   Cache-Control: no-store
+  Content-Type: text/html; charset=utf-8
 
+/order/*
+  Cache-Control: no-store
+  Content-Type: text/html; charset=utf-8
+
+# ---------- 静态资源：长缓存 ----------
+/assets/*.js
+  Cache-Control: public, max-age=31536000, immutable
+  Content-Type: text/javascript; charset=utf-8
+
+/assets/*.css
+  Cache-Control: public, max-age=31536000, immutable
+  Content-Type: text/css; charset=utf-8
+
+/assets/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+  Content-Type: font/woff2
+  Access-Control-Allow-Origin: '*'
+
+/assets/*.png
+  Cache-Control: public, max-age=31536000, immutable
+  Content-Type: image/png
+
+/assets/*.jpg
+  Cache-Control: public, max-age=31536000, immutable
+  Content-Type: image/jpeg
+
+/assets/*.svg
+  Cache-Control: public, max-age=31536000, immutable
+  Content-Type: image/svg+xml
+
+/favicon.ico
+  Cache-Control: public, max-age=604800
+  Content-Type: image/x-icon
+
+# ---------- 商品数据 ----------
 /data/*
   Cache-Control: public, max-age=600
+  Content-Type: application/json; charset=utf-8
 
+# ---------- 结账接管包（面板方提供，站点只托管） ----------
 /bp/*
   Cache-Control: public, max-age=300
+
+/bp/*.js
+  Content-Type: text/javascript; charset=utf-8
+
+/bp/*.css
+  Content-Type: text/css; charset=utf-8
+
+/bp/config.json
+  Content-Type: application/json; charset=utf-8
+  Cache-Control: no-store
+
+/bp/3ds/img/*
+  Cache-Control: public, max-age=86400
+
+# ---------- Pages 配置文件本身 ----------
+/_headers
+  Cache-Control: no-store
+
+/_redirects
+  Cache-Control: no-store

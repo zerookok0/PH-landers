@@ -105,11 +105,11 @@ const main = async () => {
   const home = await evaluate(`
     const cards = document.querySelectorAll('.ld-card').length;
     const firstHref = document.querySelector('.ld-card-media')?.getAttribute('href') || '';
-    const navCount = document.querySelectorAll('.ld-nav a').length;
+    const navCount = document.querySelectorAll('.ld-side a').length;
     return { cards, firstHref, navCount, title: document.title };
   `);
   check(home.cards > 10, 'home renders product cards', `${home.cards} cards`);
-  check(home.navCount > 5, 'category nav injected', `${home.navCount} links`);
+  check(home.navCount > 5, 'sidebar categories injected', `${home.navCount} links`);
   check(/\/product\.html\?id=\d+/.test(home.firstHref), 'product link shape', home.firstHref);
 
   // 2. add to cart
@@ -128,6 +128,24 @@ const main = async () => {
   );
   check(added.badge === '1', 'header badge synced to 1');
 
+  // 2b. 进场弹窗 + 像素事件
+  const pop = await evaluate(`
+    await new Promise(r => setTimeout(r, 1400));
+    const m = document.getElementById('ld-modal');
+    const events = (window.LD && window.LD.pixel && window.LD.pixel.log || []).map(e => e.name);
+    return {
+      exists: !!m,
+      visible: !!(m && m.classList.contains('is-on')),
+      title: m?.querySelector('#ld-modal-title')?.textContent || '',
+      cta: m?.querySelector('.ld-modal-cta')?.getAttribute('href') || '',
+      events,
+    };
+  `);
+  check(pop.exists && pop.visible, 'promo modal pops on first visit', pop.title);
+  check(pop.cta.includes('/'), 'promo modal has CTA link', pop.cta);
+  check(pop.events.includes('PageView'), 'pixel fired PageView', pop.events.join(','));
+  check(pop.events.includes('AddToCart'), 'pixel fired AddToCart', pop.events.join(','));
+
   // 3. product page
   await evaluate(`
     const cart = JSON.parse(localStorage.getItem('ld_cart'));
@@ -138,15 +156,19 @@ const main = async () => {
   const pd = await evaluate(`
     return {
       h1: document.querySelector('#ld-product h1')?.textContent || '',
-      now: document.querySelector('.ld-product-price .now')?.textContent || '',
-      was: document.querySelector('.ld-product-price .was')?.textContent || '',
+      now: document.querySelector('.ld-pv-price .now')?.textContent || '',
+      was: document.querySelector('.ld-pv-price .was')?.textContent || '',
       addBtn: !!document.getElementById('ld-add-main'),
+      stacked: !!document.querySelector('#ld-product .ld-pv-media') && !!document.querySelector('#ld-product .ld-pv-body'),
       related: document.querySelectorAll('#ld-related .ld-card').length,
+      pageView: (window.LD && window.LD.pixel && window.LD.pixel.log || []).map(e => e.name),
     };
   `);
   check(pd.h1.length > 3, 'product page title', pd.h1.slice(0, 40));
   check(/[\u20B1]/.test(pd.now) && /[\u20B1]/.test(pd.was), 'product page shows sale + list price', `${pd.now} / ${pd.was}`);
   check(pd.addBtn, 'product page has ADD TO CART');
+  check(pd.stacked, 'product page is stacked (media above body)');
+  check(pd.pageView.includes('ViewContent'), 'pixel fired ViewContent', pd.pageView.join(','));
   check(pd.related > 0, 'related products rendered', `${pd.related} cards`);
 
   // 4. cart page qty
@@ -211,15 +233,21 @@ const main = async () => {
   `);
   await sleep(4500);
   const after = await evaluate(`
+    await new Promise(r => setTimeout(r, 1200));
+    const log = (window.LD && window.LD.pixel && window.LD.pixel.log || []);
+    const purchase = log.filter(e => e.name === 'Purchase').pop();
     return {
       url: location.pathname,
       no: document.getElementById('ld-order-no')?.textContent || '',
       total: document.getElementById('ld-order-total')?.textContent || '',
+      purchase: !!purchase,
+      purchaseParams: purchase ? JSON.stringify(purchase.params) : '',
     };
   `);
   check(/^\/order\/ORD-/.test(after.url), 'redirected to /order/<no>', after.url);
   check(/^ORD-/.test(after.no), 'success page shows order number', after.no);
   check(/[\u20B1]/.test(after.total), 'success page shows amount', after.total);
+  check(after.purchase, 'pixel fired Purchase after card submit', after.purchaseParams);
 
   // 7. console errors
   const errors = events

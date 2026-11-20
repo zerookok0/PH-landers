@@ -7,28 +7,33 @@
   <meta name="description" content="Shop __NAME__ at Landers Superstore — 50% off shelf price.">
   <link rel="icon" href="/favicon.ico">
   <link rel="stylesheet" href="/assets/base.css">
+  <script defer src="/assets/config.js"></script>
+  <script defer src="/assets/pixel.js"></script>
   <script defer src="/assets/layout.js"></script>
   <script defer src="/assets/app.js"></script>
 </head>
 <body data-page="category" data-cat="__SLUG__">
   <div id="ld-header"></div>
 
-  <main class="ld-wrap">
-    <div class="ld-crumb"><a href="/">Home</a> / <span>__NAME__</span></div>
-    <div class="ld-page-head">
-      <h1 id="ld-cat-name">__NAME__</h1>
-      <div class="ld-count" id="ld-count"></div>
+  <main class="ld-wrap ld-shell">
+    <aside class="ld-side" id="ld-side"></aside>
+    <div class="ld-content">
+      <div class="ld-crumb"><a href="/">Home</a> / <span>__NAME__</span></div>
+      <div class="ld-page-head">
+        <h1 id="ld-cat-name">__NAME__</h1>
+        <div class="ld-count" id="ld-count"></div>
+      </div>
+      <div class="ld-toolbar">
+        <select id="ld-sort" aria-label="Sort products">
+          <option value="default">Sort: Featured</option>
+          <option value="price-asc">Price: low to high</option>
+          <option value="price-desc">Price: high to low</option>
+          <option value="name">Name A-Z</option>
+        </select>
+      </div>
+      <div class="ld-grid" id="ld-grid"></div>
+      <div class="ld-pager" id="ld-pager"></div>
     </div>
-    <div class="ld-toolbar">
-      <select id="ld-sort" aria-label="Sort products">
-        <option value="default">Sort: Featured</option>
-        <option value="price-asc">Price: low to high</option>
-        <option value="price-desc">Price: high to low</option>
-        <option value="name">Name A–Z</option>
-      </select>
-    </div>
-    <div class="ld-grid" id="ld-grid"></div>
-    <div class="ld-pager" id="ld-pager"></div>
   </main>
 
   <div id="ld-footer"></div>

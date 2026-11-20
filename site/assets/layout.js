@@ -1,7 +1,8 @@
-/* 页头 / 导航 / 页脚 —— 每个页面注入同一份结构，保证全站一致。
-   数据依赖：/data/categories.json（构建产物） */
+/* 页头 / 侧边栏 / 页脚 / 进场弹窗 —— 每个页面注入同一份结构。
+   数据依赖：/data/categories.json、/assets/config.js（弹窗文案） */
 (function () {
   const LANDERS_LOGO = '/assets/logo-dark.png';
+  const CFG = (window.LD_CONFIG = window.LD_CONFIG || {});
 
   const TOPBAR = [
     ['Download the App', '/app.html'],
@@ -86,6 +87,13 @@
     if (badge) badge.textContent = String(cartCount());
   }
 
+  const ICON = {
+    pin: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>',
+    cart: '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4H5L4 6H2v2h2l3.6 7.6L6.2 18H19v-2H8.4l1.1-2H16a2 2 0 0 0 1.8-1.1L21 6H6.2L5.3 4H7z"/><circle cx="9" cy="20" r="1.6"/><circle cx="17" cy="20" r="1.6"/></svg>',
+    menu: '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z"/></svg>',
+    search: '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14z"/></svg>',
+  };
+
   function buildHeader(mount) {
     const head = el(`
       <div>
@@ -96,38 +104,41 @@
         </div>
         <header class="ld-header">
           <div class="ld-wrap">
+            <button class="ld-burger" id="ld-burger" type="button" aria-label="Open categories">${ICON.menu}<span>Categories</span></button>
             <a class="ld-logo" href="/" aria-label="Landers Superstore">
-              <img src="${LANDERS_LOGO}" alt="Landers Superstore" width="140" height="46">
+              <img src="${LANDERS_LOGO}" alt="Landers Superstore" width="140" height="40">
             </a>
             <form class="ld-search" role="search" action="/search.html" method="get">
               <input type="search" name="q" placeholder="Search for products, brands and more" aria-label="Search">
-              <button type="submit">SEARCH</button>
+              <button type="submit" aria-label="Search">${ICON.search}<span>SEARCH</span></button>
             </form>
             <div class="ld-head-actions">
               <a class="ld-loc" href="/delivery-areas.html" title="Delivery location">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>
-                <span>Enter Your Delivery Location</span>
+                ${ICON.pin}<span>Enter Your Delivery Location</span>
               </a>
               <a class="ld-head-link" href="/membership.html">Sign Up</a>
               <a class="ld-head-link" href="/membership.html#login">Login</a>
               <a class="ld-cart-btn" href="/cart.html">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4h-2l-1 2H2v2h2l3.6 7.6-1.4 2.4H19v-2H8.4l1.1-2H16a2 2 0 0 0 1.8-1.1l3-6.9H6.2L5.3 4H7zm0 0"/><circle cx="9" cy="20" r="1.6"/><circle cx="17" cy="20" r="1.6"/></svg>
-                Cart <span class="ld-cart-count" id="ld-cart-count">0</span>
+                ${ICON.cart}
+                <span>Cart</span>
+                <span class="ld-cart-count" id="ld-cart-count">0</span>
               </a>
             </div>
           </div>
         </header>
-        <nav class="ld-nav" aria-label="Categories"><div class="ld-wrap" id="ld-nav-list"></div></nav>
       </div>
     `);
     mount.replaceWith(head);
     paintBadge();
-    fillNav();
+    fillSidebar();
+    bindBurger();
   }
 
-  async function fillNav() {
-    const box = document.getElementById('ld-nav-list');
-    if (!box) return;
+  /* ---------- 左侧分类栏（原站是侧边栏，不是顶栏） ---------- */
+  async function fillSidebar() {
+    const side = document.getElementById('ld-side');
+    if (!side) return;
+
     let cats = [];
     try {
       cats = await (await fetch('/data/categories.json')).json();
@@ -135,15 +146,37 @@
       cats = [];
     }
     const here = location.pathname;
-    const items = cats
-      .filter((c) => c.slug !== 'uncategorized')
-      .map(
-        (c) =>
-          `<a href="/c/${c.slug}.html" class="${here === `/c/${c.slug}.html` ? 'is-active' : ''}">${c.name}</a>`
-      );
-    box.innerHTML =
-      items.join('') +
-      `<a href="/new-trending.html">New &amp; Trending</a><a href="/promotions.html">Promos</a>`;
+    const rows = [
+      `<a class="ld-side-item ld-side-new" href="/new-trending.html"><span>NEW!</span> Selection by Landers</a>`,
+      `<a class="ld-side-item" href="/new-trending.html">New &amp; Trending</a>`,
+      `<a class="ld-side-item" href="/promotions.html">Promotions</a>`,
+      `<div class="ld-side-sep"></div>`,
+      ...cats
+        .filter((c) => c.slug !== 'uncategorized')
+        .map(
+          (c) =>
+            `<a class="ld-side-item${here === `/c/${c.slug}.html` ? ' is-active' : ''}" href="/c/${c.slug}.html">
+               <span class="ld-side-name">${c.name}</span>
+               <span class="ld-side-count">${c.count}</span>
+             </a>`
+        ),
+    ];
+
+    side.innerHTML = `
+      <div class="ld-side-head">All Categories</div>
+      <nav class="ld-side-list" aria-label="Product categories">${rows.join('')}</nav>
+    `;
+    side.dataset.ready = '1';
+  }
+
+  function bindBurger() {
+    const btn = document.getElementById('ld-burger');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const side = document.getElementById('ld-side');
+      if (side) side.classList.toggle('is-open');
+      document.body.classList.toggle('ld-side-open');
+    });
   }
 
   function buildFooter(mount) {
@@ -184,12 +217,79 @@
     mount.replaceWith(foot);
   }
 
+  /* ---------- 进场弹窗（预告活动，文案在 /assets/config.js） ---------- */
+  function buildPromoModal() {
+    const m = CFG.promoModal || {};
+    if (!m.enabled) return;
+    const page = document.body.dataset.page || '';
+    if (Array.isArray(m.pages) && m.pages.length && !m.pages.includes(page)) return;
+
+    const key = 'ld_promo_' + (m.title || 'default').replace(/\s+/g, '-').slice(0, 40);
+    const ttl = Number(m.ttlHours || 0) * 3600 * 1000;
+    if (ttl > 0) {
+      try {
+        const seen = Number(localStorage.getItem(key) || 0);
+        if (seen && Date.now() - seen < ttl) return;
+      } catch (e) {}
+    }
+
+    const pop = el(`
+      <div class="ld-modal" id="ld-modal" role="dialog" aria-modal="true" aria-labelledby="ld-modal-title">
+        <div class="ld-modal-backdrop" data-close="1"></div>
+        <div class="ld-modal-card">
+          <button class="ld-modal-x" type="button" data-close="1" aria-label="Close">&times;</button>
+          <div class="ld-modal-media${m.image ? ' has-img' : ''}"${m.image ? ` style="background-image:url('${m.image}')"` : ''}>
+            ${m.badge ? `<span class="ld-modal-badge">${m.badge}</span>` : ''}
+            ${
+              m.image
+                ? ''
+                : `<div class="ld-modal-hero">
+                     <strong>${m.mediaTitle || '50% OFF'}</strong>
+                     <em>${m.mediaSubtitle || 'STORE WIDE'}</em>
+                   </div>`
+            }
+          </div>
+          <div class="ld-modal-body">
+            <h3 id="ld-modal-title">${m.title || ''}</h3>
+            ${m.subtitle ? `<p class="ld-modal-sub">${m.subtitle}</p>` : ''}
+            ${m.body ? `<p class="ld-modal-text">${m.body}</p>` : ''}
+            ${
+              Array.isArray(m.bullets) && m.bullets.length
+                ? `<ul class="ld-modal-list">${m.bullets.map((b) => `<li>${b}</li>`).join('')}</ul>`
+                : ''
+            }
+            <a class="ld-btn ld-modal-cta" href="${m.ctaHref || '/'}">${m.cta || 'SHOP NOW'}</a>
+            <button class="ld-modal-dismiss" type="button" data-close="1">${m.dismiss || 'Maybe later'}</button>
+          </div>
+        </div>
+      </div>
+    `);
+
+    const close = () => {
+      pop.classList.remove('is-on');
+      try {
+        localStorage.setItem(key, String(Date.now()));
+      } catch (e) {}
+      setTimeout(() => pop.remove(), 260);
+    };
+
+    document.body.appendChild(pop);
+    pop.addEventListener('click', (e) => {
+      if (e.target.closest('[data-close]')) close();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && document.body.contains(pop)) close();
+    });
+    setTimeout(() => pop.classList.add('is-on'), Number(m.delayMs || 800));
+  }
+
   const boot = () => {
     const hm = document.getElementById('ld-header');
     if (hm) buildHeader(hm);
     const fm = document.getElementById('ld-footer');
     if (fm) buildFooter(fm);
     window.addEventListener('ld:cart-changed', paintBadge);
+    buildPromoModal();
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);

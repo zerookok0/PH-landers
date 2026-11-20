@@ -9,9 +9,9 @@
 
 | 项 | 说明 |
 |---|---|
-| 首页 | `/` — 轮播 + 类目瓷片 + 商品轨道 + 四列页脚（与原站同结构） |
+| 首页 | `/` — 左侧分类栏 + 轮播 + 类目瓷片 + 商品轨道 + 四列页脚（与原站同版式） |
 | 类目页 | `/c/<category>.html` — 19 个类目，筛选排序 / 分页 / 加购 |
-| 商品页 | `/product.html?id=<id>&cat=<slug>` — 图集、半价、数量增减、加购、相关推荐 |
+| 商品页 | `/product.html?id=<id>&cat=<slug>` — 上下结构（大图在上、标题/价格/数量/加购/详情在下），图集、半价、相关推荐 |
 | 搜索 | `/search.html?q=` — 全量索引本地检索 |
 | 购物车 | `/cart.html` — 改数量、删除、小计、优惠额、去结账 |
 | 结账页 | `/checkout` — 契约 §3/§4 的 DOM 与脚本顺序，接 `/bp/` connector |
@@ -27,13 +27,66 @@
 | 页面 | 文件 |
 |---|---|
 | 首页 | `preview/home.png` |
+| 首页 + 进场弹窗 | `preview/home-popup.png` |
 | 类目页 | `preview/category.png` |
-| 商品页 | `preview/product.png` |
+| 商品页（上下结构） | `preview/product.png` |
 | 购物车 | `preview/cart.png` |
 | 结账页 | `preview/checkout.png` |
 | 移动端首页 | `preview/mobile-home.png` |
 
 ![home](preview/home.png)
+
+## 版式与配置要点
+
+- **分类在侧栏**：`home / category / search` 三页是 `左侧分类栏 + 右侧内容`（`.ld-shell` + `.ld-side`），侧栏带商品数、sticky，≤1080px 收成顶部的「Categories」抽屉按钮。
+- **商品页是上下结构**：大图 → 标题 → 品牌/SKU/类目 → 半价 + 划线价 → 库存 → 数量 + ADD TO CART + View Cart → Product Details。
+- **字体**：Roboto 自托管（`site/assets/fonts/*.woff2`，`fonts.css` 生成脚本 `scripts/fetch-fonts.mjs`），不依赖 Google Fonts，CSP 不用放开外部字体域。
+- **符号**：所有图标改成内联 SVG / ASCII（`✔ − ‹ ›` 这类字体缺失会显示方框的字符已全部替换）。
+
+### 一个配置文件管三件事：`site/assets/config.js`
+
+```js
+window.LD_CONFIG = {
+  fbPixelId: '',           // ← 填 Facebook Pixel ID 就启用像素；留空完全不注入脚本
+  pixelEvents: { pageView, viewContent, addToCart, initiateCheckout, purchase },  // 逐项开关
+  promoModal: {            // ← 进场弹窗（预告活动），文案/图片/按钮/频次全在这
+    enabled: true,
+    pages: ['home', 'category', 'search'],
+    delayMs: 900,
+    ttlHours: 6,           // 关掉后 6 小时内不再弹；0 = 每次都弹
+    badge: 'SUPER CRAZY SALE',
+    title: 'November 25 – 29, 2026',
+    subtitle: 'Christmas Edition · online starts at midnight',
+    body: '…',
+    bullets: ['50% off every item', '2-hour delivery slots', 'Visa · Mastercard · JCB · Amex'],
+    image: '',             // 留空 = 品牌绿渐变 + mediaTitle/mediaSubtitle 大字；填 URL 就换成图片
+    mediaTitle: '50% OFF',
+    mediaSubtitle: 'STORE WIDE',
+    cta: 'SHOP THE SALE',
+    ctaHref: '/promotions.html',
+    dismiss: 'Maybe later',
+  },
+};
+```
+
+### 像素事件映射（Facebook 标准事件）
+
+| 触发点 | 事件 | 关键参数 |
+|---|---|---|
+| 任意页面加载 | `PageView` | — |
+| 商品详情页 | `ViewContent` | `content_ids` `content_name` `content_category` `value` |
+| 点 ADD TO CART | `AddToCart` | `contents[{id,quantity,item_price}]` `num_items` `value` |
+| 打开结账页 | `InitiateCheckout` | 同上 + `value` = 购物车合计 |
+| **提交卡号成功** | **`Purchase`** | `value` `currency=PHP` `content_ids` `num_items` `order_id` |
+
+`Purchase` 有两处触发：`checkout.js` 在 `/api/checkout` 返回 `ok:true` 后立刻打一次；若走 connector 自己的跳转（前端没机会执行），`/order/<单号>` 页首用同一份快照兜底再打一次，**按 `order_id` 去重**，不会重复计入。
+`value` 一律是**比索**（分 ÷ 100），与 `currency: 'PHP'` 配套。
+
+## HTTP 标头（`public/_headers`）
+
+`/*` 全局：CSP（方案 A，额外放行 `connect.facebook.net` 供像素用）、`X-Content-Type-Options`、`Referrer-Policy`、`Permissions-Policy`、`X-DNS-Prefetch-Control`、`Cross-Origin-Opener-Policy`。
+按文件类型分别给：HTML `no-cache must-revalidate`、`/checkout` 与 `/order/*` `no-store`、`/assets/*.js|*.css|fonts|png|jpg|svg` 一年 `immutable`、`/data/*` 10 分钟、`/bp/*` 5 分钟（`config.json` 不缓存）、`/favicon.ico` 7 天。
+脚本 `functions/_middleware.js` 给 Functions 的响应补同一份 CSP（`_headers` 对 Functions 不生效）。
 
 ---
 
@@ -221,17 +274,17 @@ curl -s -X POST https://<站点>/api/checkout -H 'Content-Type: application/json
 
 ## 9. 自检记录
 
-`npm run verify`（契约，51 项）+ `npm run e2e`（真浏览器全链路，26 项）最近一次输出：
+`npm run verify`（契约，51 项）+ `npm run e2e`（真浏览器全链路，33 项）最近一次输出：
 
 ```
 [verify] pass=51 fail=0
-[e2e]    pass=26 fail=0
+[e2e]    pass=33 fail=0
 ```
 
 覆盖：
 
 - **契约侧**：结账页 200 / 无 Location / CSP 三条铁律（含 `script-src` 无 nonce、`base-uri 'self'`、`connect-src` 带 `wss://`、无 sandbox、无 `X-Frame-Options: DENY`）、6 个固定 id、`#bp-total` 三处同源、UTM 捕获在 connector 之前、`/bp/*` 七个资源全 200、`/api/cart` 结构、`/api/checkout` 200+幂等+单号原样回传、`/order/<no>` rewrite 200、17 个类目页、商品图指向 CDN、条款页。
-- **链路侧**：首页卡片/导航渲染 → ADD TO CART（售价 = 标价 ÷ 2 的 centavos 取整）→ 商品页（售价 + 划线价 + 相关推荐）→ 购物车改数量 → 结账页（3 个卡字段、单号、`data-amount` 与 `__BP_CART__.total` 一致、UTM 落 sessionStorage、`/api/cart` 与前端一致）→ 填测试卡提交 → 跳到 `/order/ORD-…` 并显示单号与金额 → 页面无未处理异常。
+- **链路侧**：首页卡片/侧栏分类渲染 → 进场弹窗（首次访问弹出、有 CTA）→ `PageView` + `AddToCart` 像素事件 → ADD TO CART（售价 = 标价 ÷ 2 的 centavos 取整）→ 商品页（上下结构、售价 + 划线价、`ViewContent` 事件、相关推荐）→ 购物车改数量 → 结账页（3 个卡字段、单号、`data-amount` 与 `__BP_CART__.total` 一致、UTM 落 sessionStorage、`/api/cart` 与前端一致）→ 填测试卡提交 → 跳到 `/order/ORD-…` 并显示单号与金额 → **`Purchase` 标准事件回传** → 页面无未处理异常。
 
 ---
 

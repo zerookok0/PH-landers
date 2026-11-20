@@ -6,6 +6,8 @@
   <title>Product | Landers Superstore</title>
   <link rel="icon" href="/favicon.ico">
   <link rel="stylesheet" href="/assets/base.css">
+  <script defer src="/assets/config.js"></script>
+  <script defer src="/assets/pixel.js"></script>
   <script defer src="/assets/layout.js"></script>
   <script defer src="/assets/app.js"></script>
 </head>
@@ -14,11 +16,11 @@
 
   <main class="ld-wrap">
     <div class="ld-crumb" id="ld-crumb"><a href="/">Home</a> / Product</div>
-    <div class="ld-product" id="ld-product">
-      <div class="ld-empty" style="grid-column:1/-1"><h2>Loading…</h2></div>
+    <div class="ld-pv" id="ld-product">
+      <div class="ld-pv-media"><div class="ld-empty">Loading…</div></div>
     </div>
 
-    <section class="ld-section">
+    <section class="ld-section" style="max-width:880px;margin:0 auto">
       <div class="ld-section-head"><h2>You may also like</h2></div>
       <div class="ld-grid" id="ld-related"></div>
     </section>

@@ -7,26 +7,31 @@
   <meta name="description" content="Landers Superstore online — groceries, household, beauty and more at 50% off shelf price. Delivered from your nearest Landers branch.">
   <link rel="icon" href="/favicon.ico">
   <link rel="stylesheet" href="/assets/base.css">
+  <script defer src="/assets/config.js"></script>
+  <script defer src="/assets/pixel.js"></script>
   <script defer src="/assets/layout.js"></script>
   <script defer src="/assets/app.js"></script>
 </head>
 <body data-page="home">
   <div id="ld-header"></div>
 
-  <main class="ld-wrap">
-    <div class="ld-hero" id="ld-hero">
-      <div class="ld-hero-track"></div>
-      <div class="ld-hero-dots"></div>
+  <main class="ld-wrap ld-shell">
+    <aside class="ld-side" id="ld-side"></aside>
+    <div class="ld-content">
+      <div class="ld-hero" id="ld-hero">
+        <div class="ld-hero-track"></div>
+        <div class="ld-hero-dots"></div>
+      </div>
+
+      <div class="ld-tiles" id="ld-tiles"></div>
+
+      <div id="ld-rails"></div>
+
+      <section class="ld-section">
+        <div class="ld-section-head"><h2>Shop by Category</h2><a href="/promotions.html">See All</a></div>
+        <div class="ld-tiles" id="ld-shortcuts"></div>
+      </section>
     </div>
-
-    <div class="ld-tiles" id="ld-tiles"></div>
-
-    <div id="ld-rails"></div>
-
-    <section class="ld-section">
-      <div class="ld-section-head"><h2>Shop by Category</h2><a href="/promotions.html">See All</a></div>
-      <div class="ld-tiles" id="ld-shortcuts"></div>
-    </section>
   </main>
 
   <div id="ld-footer"></div>

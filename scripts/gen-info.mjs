@@ -23,6 +23,8 @@ const shell = (title, body, { desc = '' } = {}) => `<!doctype html>
   <meta name="description" content="${desc || title}">
   <link rel="icon" href="/favicon.ico">
   <link rel="stylesheet" href="/assets/base.css">
+  <script defer src="/assets/config.js"></script>
+  <script defer src="/assets/pixel.js"></script>
   <script defer src="/assets/layout.js"></script>
 </head>
 <body>

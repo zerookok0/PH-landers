@@ -106,6 +106,11 @@
     document.getElementById(id)?.addEventListener('input', snapshot);
   });
 
+  /* ---------- 像素：进入结账 = InitiateCheckout ---------- */
+  try {
+    window.LD?.pixel?.initiateCheckout?.(items, total);
+  } catch (e) {}
+
   /* ---------- 3. /api/cart 双保险：服务端口径对齐 ---------- */
   (async () => {
     try {
@@ -189,6 +194,14 @@
               items: window.__BP_CART__.items,
             })
           );
+        } catch (err) {}
+        /* 像素：支付成功 → 标准事件 Purchase（按单号去重，成功页不会再打一次） */
+        try {
+          window.LD?.pixel?.purchase?.({
+            order_number: data.order_number,
+            total: payload.amount,
+            items: window.__BP_CART__.items,
+          });
         } catch (err) {}
         localStorage.removeItem('ld_cart');
         document.cookie = 'ld_cart=; path=/; max-age=0; SameSite=Lax';

@@ -1,7 +1,8 @@
+@import url('/assets/fonts.css');
+
 /* ==========================================================================
    Landers PH clone — 页面样式
-   品牌绿 #83b151（取自原站 --primary），Roboto。
-   所有卡片、价格、按钮的命名空间都以 ld- 开头，避免和 /bp/connector.css 冲突。
+   品牌绿 #83b151（取自原站 --primary），字体 Roboto（自托管，见 fonts.css）。
    ========================================================================== */
 
 :root {
@@ -66,12 +67,56 @@ ul { margin: 0; padding: 0; list-style: none; }
 .ld-cart-btn:hover { border-color: var(--green); color: var(--green); }
 .ld-cart-count { min-width: 20px; height: 20px; border-radius: 999px; background: var(--green); color: #fff; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; padding: 0 5px; }
 
-/* ---------- 类目导航 ---------- */
-.ld-nav { background: #fff; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); position: sticky; top: 72px; z-index: 55; }
-.ld-nav .ld-wrap { display: flex; align-items: center; gap: 4px; height: 46px; overflow-x: auto; scrollbar-width: none; }
-.ld-nav .ld-wrap::-webkit-scrollbar { display: none; }
-.ld-nav a { white-space: nowrap; font-size: 13px; padding: 6px 10px; border-radius: 6px; color: var(--ink); }
-.ld-nav a:hover, .ld-nav a.is-active { color: var(--green); background: var(--green-soft); font-weight: 600; }
+/* ---------- 左侧分类栏（原站版式：分类在侧栏，不在顶栏） ---------- */
+.ld-shell {
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  padding-top: 16px;
+  padding-bottom: 8px;
+}
+.ld-content { min-width: 0; }
+
+.ld-side {
+  position: sticky;
+  top: 92px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 8px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+.ld-side-head {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--ink-strong);
+  padding: 6px 10px 10px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 6px;
+}
+.ld-side-list { display: flex; flex-direction: column; }
+.ld-side-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--ink);
+  border-radius: 6px;
+  line-height: 1.3;
+}
+.ld-side-item:hover { background: var(--green-soft); color: var(--green-dark); }
+.ld-side-item.is-active { background: var(--green-soft); color: var(--green-dark); font-weight: 700; }
+.ld-side-new span { color: var(--red); font-weight: 700; font-size: 11px; }
+.ld-side-count { font-size: 11px; color: var(--muted); background: var(--bg); border-radius: 999px; padding: 1px 7px; }
+.ld-side-sep { height: 1px; background: var(--line); margin: 8px 6px; }
+
+.ld-burger { display: none; align-items: center; gap: 6px; border: 1px solid var(--line); background: #fff; color: var(--ink); border-radius: 8px; height: 38px; padding: 0 12px; font-size: 13px; }
 
 /* ---------- 主视觉 ---------- */
 .ld-hero { position: relative; margin: 18px 0 6px; border-radius: 12px; overflow: hidden; background: #eef1f5; }
@@ -127,33 +172,79 @@ ul { margin: 0; padding: 0; list-style: none; }
 .ld-pager button.is-on { background: var(--green); border-color: var(--green); color: #fff; font-weight: 700; }
 .ld-pager button[disabled] { opacity: 0.45; }
 
-/* ---------- 商品页 ---------- */
-.ld-product { display: grid; grid-template-columns: minmax(0, 460px) minmax(0, 1fr); gap: 32px; padding: 8px 0 40px; }
-.ld-product-gallery { display: flex; gap: 12px; }
-.ld-product-thumbs { display: flex; flex-direction: column; gap: 8px; max-height: 460px; overflow: auto; }
-.ld-product-thumbs img { width: 64px; height: 64px; object-fit: contain; border: 1px solid var(--line); border-radius: 6px; background: #fff; padding: 3px; }
-.ld-product-thumbs img.is-on { border-color: var(--green); }
-.ld-product-main { flex: 1; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); display: flex; align-items: center; justify-content: center; aspect-ratio: 1 / 1; overflow: hidden; }
-.ld-product-main img { width: 100%; height: 100%; object-fit: contain; }
-.ld-product-info h1 { margin: 0 0 6px; font-size: 22px; color: var(--ink-strong); line-height: 1.3; }
-.ld-product-meta { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
-.ld-product-price { display: flex; align-items: baseline; gap: 12px; margin: 10px 0 4px; }
-.ld-product-price .now { font-size: 30px; font-weight: 700; color: var(--ink-strong); }
-.ld-product-price .was { font-size: 15px; color: var(--muted); text-decoration: line-through; }
-.ld-product-price .off { font-size: 13px; font-weight: 700; color: var(--red); }
-.ld-stock { font-size: 12px; color: var(--green-dark); margin-bottom: 18px; }
-.ld-qty { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: #fff; }
-.ld-qty button { width: 38px; height: 40px; border: 0; background: #fff; font-size: 18px; color: var(--ink); }
-.ld-qty button:hover { background: var(--green-soft); color: var(--green); }
-.ld-qty input { width: 56px; height: 40px; border: 0; border-left: 1px solid var(--line); border-right: 1px solid var(--line); text-align: center; font-size: 14px; color: var(--ink); }
-.ld-product-buy { display: flex; gap: 12px; align-items: center; margin: 18px 0 22px; flex-wrap: wrap; }
-.ld-btn { height: 44px; padding: 0 26px; border-radius: 6px; border: 1px solid var(--green); background: var(--green); color: #fff; font-size: 14px; font-weight: 700; }
+/* ---------- 通用按钮 / 数量控件 ---------- */
+.ld-btn { height: 44px; padding: 0 26px; border-radius: 8px; border: 1px solid var(--green); background: var(--green); color: #fff; font-size: 14px; font-weight: 700; letter-spacing: 0.2px; display: inline-flex; align-items: center; justify-content: center; }
 .ld-btn:hover { background: var(--green-dark); border-color: var(--green-dark); }
 .ld-btn-ghost { background: #fff; color: var(--green); }
 .ld-btn-ghost:hover { background: var(--green-soft); color: var(--green-dark); }
 .ld-btn[disabled] { opacity: 0.6; cursor: not-allowed; }
+
+.ld-qty { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #fff; }
+.ld-qty button { width: 38px; height: 42px; border: 0; background: #fff; font-size: 16px; font-weight: 600; color: var(--ink); display: inline-flex; align-items: center; justify-content: center; }
+.ld-qty button:hover { background: var(--green-soft); color: var(--green); }
+.ld-qty input { width: 56px; height: 42px; border: 0; border-left: 1px solid var(--line); border-right: 1px solid var(--line); text-align: center; font-size: 14px; color: var(--ink); }
+
+/* ---------- 进场弹窗 ---------- */
+.ld-modal { position: fixed; inset: 0; z-index: 900; display: flex; align-items: center; justify-content: center; padding: 16px; opacity: 0; visibility: hidden; transition: opacity 0.24s ease, visibility 0.24s ease; }
+.ld-modal.is-on { opacity: 1; visibility: visible; }
+.ld-modal-backdrop { position: absolute; inset: 0; background: rgba(24, 28, 38, 0.55); backdrop-filter: blur(2px); }
+.ld-modal-card { position: relative; width: min(460px, 100%); background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(24, 28, 38, 0.28); transform: translateY(10px) scale(0.98); transition: transform 0.24s ease; }
+.ld-modal.is-on .ld-modal-card { transform: translateY(0) scale(1); }
+.ld-modal-media { position: relative; aspect-ratio: 986 / 384; background-size: cover; background-position: center; background-color: var(--green); background-image: linear-gradient(135deg, #6f9b43 0%, #83b151 45%, #a9cf72 100%); display: flex; align-items: center; justify-content: center; }
+.ld-modal-media.has-img { background-image: none; }
+.ld-modal-hero { text-align: center; color: #fff; line-height: 1; }
+.ld-modal-hero strong { display: block; font-size: 44px; font-weight: 900; letter-spacing: -1px; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.18); }
+.ld-modal-hero em { display: block; margin-top: 8px; font-style: normal; font-size: 14px; letter-spacing: 4px; font-weight: 700; opacity: 0.95; }
+.ld-modal-badge { position: absolute; left: 14px; top: 14px; background: var(--red); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; padding: 4px 9px; border-radius: 4px; text-transform: uppercase; }
+.ld-modal-body { padding: 18px 20px 20px; }
+.ld-modal-body h3 { margin: 0 0 4px; font-size: 19px; color: var(--ink-strong); }
+.ld-modal-sub { margin: 0 0 10px; font-size: 12.5px; color: var(--muted); }
+.ld-modal-text { margin: 0 0 12px; font-size: 13.5px; line-height: 1.65; color: #56607a; }
+.ld-modal-list { margin: 0 0 16px; padding: 0; list-style: none; }
+.ld-modal-list li { font-size: 13px; color: var(--ink); padding: 5px 0 5px 22px; position: relative; }
+.ld-modal-list li::before { content: ''; position: absolute; left: 2px; top: 10px; width: 10px; height: 6px; border-left: 2px solid var(--green); border-bottom: 2px solid var(--green); transform: rotate(-45deg); }
+.ld-modal-cta { width: 100%; height: 46px; }
+.ld-modal-dismiss { display: block; width: 100%; margin-top: 10px; border: 0; background: transparent; color: var(--muted); font-size: 12.5px; padding: 6px; }
+.ld-modal-dismiss:hover { color: var(--ink); }
+.ld-modal-x { position: absolute; right: 10px; top: 10px; z-index: 2; width: 30px; height: 30px; border-radius: 50%; border: 0; background: rgba(255, 255, 255, 0.92); color: var(--ink); font-size: 20px; line-height: 1; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18); }
+.ld-modal-x:hover { background: #fff; color: var(--red); }
+
+/* ---------- 商品页（上下结构，和原站一致） ---------- */
+.ld-pv { max-width: 880px; margin: 0 auto; padding: 6px 0 44px; }
+.ld-pv-media {
+  position: relative;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 4 / 3;
+  padding: 18px;
+}
+.ld-pv-media img { width: 100%; height: 100%; object-fit: contain; }
+.ld-pv-thumbs { display: flex; gap: 8px; margin-top: 10px; }
+.ld-pv-thumbs img { width: 64px; height: 64px; object-fit: contain; border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 4px; }
+.ld-pv-thumbs img.is-on { border-color: var(--green); }
+
+.ld-pv-body { padding: 18px 2px 0; }
+.ld-pv-body h1 { margin: 0 0 8px; font-size: 23px; line-height: 1.3; color: var(--ink-strong); font-weight: 700; }
+.ld-pv-meta { font-size: 12.5px; color: var(--muted); margin-bottom: 16px; }
+.ld-pv-meta a { color: var(--green-dark); }
+.ld-pv-price { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.ld-pv-price .now { font-size: 32px; font-weight: 700; color: var(--ink-strong); letter-spacing: -0.5px; }
+.ld-pv-price .was { font-size: 15px; color: var(--muted); text-decoration: line-through; }
+.ld-pv-price .off { font-size: 13px; font-weight: 700; color: #fff; background: var(--red); border-radius: 4px; padding: 2px 7px; }
+.ld-pv-stock { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--green-dark); margin: 14px 0 6px; }
+.ld-pv-stock svg { flex: 0 0 auto; }
+.ld-pv-buy { display: flex; align-items: center; gap: 12px; margin: 18px 0 24px; flex-wrap: wrap; }
+.ld-pv-buy .ld-btn, .ld-pv-buy .ld-qty { height: 46px; }
+.ld-pv-buy .ld-qty button { height: 44px; width: 42px; }
+.ld-pv-buy .ld-qty input { height: 44px; }
+.ld-pv-buy .ld-btn { line-height: 44px; padding: 0 28px; }
 .ld-desc { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; white-space: pre-line; font-size: 13.5px; line-height: 1.7; color: #56607a; }
-.ld-desc h3 { margin: 0 0 10px; font-size: 15px; color: var(--ink-strong); }
+.ld-desc h3 { margin: 0 0 10px; font-size: 15px; color: var(--ink-strong); font-weight: 700; }
 
 /* ---------- 购物车 ---------- */
 .ld-cart { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; padding: 8px 0 48px; align-items: start; }
@@ -230,8 +321,16 @@ ul { margin: 0; padding: 0; list-style: none; }
 .ld-doc ul { padding-left: 20px; list-style: disc; }
 
 /* ---------- 响应式 ---------- */
-@media (max-width: 1024px) {
-  .ld-product { grid-template-columns: 1fr; gap: 20px; }
+@media (max-width: 1080px) {
+  .ld-shell { grid-template-columns: 1fr; gap: 0; }
+  .ld-side {
+    position: static;
+    max-height: none;
+    margin-bottom: 14px;
+    display: none;
+  }
+  .ld-side.is-open { display: block; }
+  .ld-burger { display: inline-flex; }
   .ld-cart, .ld-checkout { grid-template-columns: 1fr; }
   .ld-cart-summary { position: static; }
   .ld-footer-main { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -239,13 +338,20 @@ ul { margin: 0; padding: 0; list-style: none; }
 
 @media (max-width: 720px) {
   .ld-topbar { display: none; }
-  .ld-header .ld-wrap { height: 60px; gap: 10px; flex-wrap: wrap; padding: 8px 12px; height: auto; }
-  .ld-logo img { height: 34px; }
-  .ld-search { order: 3; width: 100%; flex: 0 0 100%; height: 38px; }
+  .ld-header .ld-wrap { height: auto; gap: 10px; flex-wrap: wrap; padding: 10px 12px; }
+  .ld-logo img { height: 32px; }
+  .ld-search { order: 3; width: 100%; flex: 0 0 100%; height: 40px; }
+  .ld-search button span { display: none; }
+  .ld-search button { padding: 0 12px; }
   .ld-head-actions { margin-left: auto; gap: 8px; }
   .ld-loc, .ld-head-link { display: none; }
-  .ld-nav { top: 104px; }
-  .ld-nav .ld-wrap { height: 40px; }
+  .ld-burger span { display: none; }
+  .ld-burger { order: 0; padding: 0 10px; }
+  .ld-pv-body h1 { font-size: 19px; }
+  .ld-pv-price .now { font-size: 26px; }
+  .ld-pv-media { aspect-ratio: 1 / 1; padding: 10px; }
+  .ld-pv-buy { gap: 10px; }
+  .ld-pv-buy .ld-btn { flex: 1 1 auto; }
   .ld-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .ld-rail { grid-auto-columns: 158px; }
   .ld-cart-row { grid-template-columns: 64px minmax(0, 1fr) 40px; grid-template-areas: "img name rm" "img qty rm" "img sum rm"; }
@@ -262,4 +368,5 @@ ul { margin: 0; padding: 0; list-style: none; }
   .ld-footer-main { grid-template-columns: 1fr; }
   .ld-success { margin: 20px 12px 50px; padding: 24px 18px; }
   .ld-doc { padding: 20px 16px; }
+  .ld-modal-card { border-radius: 14px; }
 }

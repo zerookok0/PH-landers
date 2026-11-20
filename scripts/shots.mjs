@@ -97,9 +97,12 @@ const main = async () => {
     return { id: cart[0].id, cat: cart[0].cat };
   `);
 
-  await shot('home', 1440, 1250, BASE + '/');
-  await shot('category', 1440, 1250, BASE + '/c/food-cupboard.html');
-  await shot('product', 1440, 1100, `${BASE}/product.html?id=${seed.id}&cat=${seed.cat}`);
+  const closeModal = `document.querySelector('#ld-modal [data-close]')?.click(); await new Promise(r=>setTimeout(r,350)); return true;`;
+
+  await shot('home-popup', 1440, 1000, BASE + '/');
+  await shot('home', 1440, 1250, BASE + '/', closeModal);
+  await shot('category', 1440, 1250, BASE + '/c/food-cupboard.html', closeModal);
+  await shot('product', 1440, 1250, `${BASE}/product.html?id=${seed.id}&cat=${seed.cat}`);
   await shot('cart', 1440, 900, BASE + '/cart.html', `
     const cart = JSON.parse(localStorage.getItem('ld_cart') || '[]');
     if (cart[0]) cart[0].qty = 3;

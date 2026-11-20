@@ -82,6 +82,9 @@
       });
     writeCart(items);
     LD.toast('Added to cart · ' + product.name.slice(0, 42));
+    try {
+      window.LD.pixel && window.LD.pixel.addToCart(product, n);
+    } catch (e) {}
   };
 
   LD.setQty = (id, qty) => {
@@ -269,10 +272,10 @@
 
       const nums = [];
       const push = (n) => nums.push(`<button class="${n === page ? 'is-on' : ''}" data-page="${n}">${n}</button>`);
-      nums.push(`<button data-page="${page - 1}" ${page === 1 ? 'disabled' : ''}>‹</button>`);
+      nums.push(`<button data-page="${page - 1}" ${page === 1 ? 'disabled' : ''}>Prev</button>`);
       const windowStart = Math.max(1, Math.min(page - 2, pages - 4));
       for (let n = windowStart; n < windowStart + Math.min(5, pages); n++) push(n);
-      nums.push(`<button data-page="${page + 1}" ${page === pages ? 'disabled' : ''}>›</button>`);
+      nums.push(`<button data-page="${page + 1}" ${page === pages ? 'disabled' : ''}>Next</button>`);
       pager.innerHTML = nums.join('');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -318,41 +321,41 @@
     if (crumb) {
       crumb.innerHTML = `<a href="/">Home</a> / <a href="/c/${p.cat}.html">${esc(data.name)}</a> / ${esc(p.name)}`;
     }
+
     box.innerHTML = `
-      <div class="ld-product-gallery">
-        ${
-          imgs.length > 1
-            ? `<div class="ld-product-thumbs">
-          ${imgs
-            .map(
-              (src, i) =>
-                `<img src="${esc(src)}" alt="${esc(p.name)} ${i + 1}" data-thumb="${i}" class="${
-                  i === 0 ? 'is-on' : ''
-                }">`
-            )
-            .join('')}
-        </div>`
-            : ''
-        }
-        <div class="ld-product-main"><img id="ld-main-img" src="${esc(imgs[0])}" alt="${esc(p.name)}"></div>
-      </div>
-      <div class="ld-product-info">
+      <div class="ld-pv-media"><img id="ld-main-img" src="${esc(imgs[0])}" alt="${esc(p.name)}"></div>
+      ${
+        imgs.length > 1
+          ? `<div class="ld-pv-thumbs">${imgs
+              .map(
+                (src, i) =>
+                  `<img src="${esc(src)}" alt="${esc(p.name)} ${i + 1}" data-thumb="${i}" class="${
+                    i === 0 ? 'is-on' : ''
+                  }">`
+              )
+              .join('')}</div>`
+          : ''
+      }
+      <div class="ld-pv-body">
         <h1>${esc(p.name)}</h1>
-        <div class="ld-product-meta">
+        <div class="ld-pv-meta">
           ${p.brand ? `Brand: <b>${esc(p.brand)}</b> · ` : ''}SKU: ${esc(p.sku)} · Category:
           <a href="/c/${p.cat}.html">${esc(data.name)}</a>
         </div>
-        <div class="ld-product-price">
+        <div class="ld-pv-price">
           <span class="now">${pr.saleText}</span>
           <span class="was">${pr.listText}</span>
           <span class="off">-50%</span>
         </div>
-        <div class="ld-stock">✔ In stock — delivered from your selected Landers branch</div>
-        <div class="ld-product-buy">
+        <div class="ld-pv-stock">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
+          In stock — delivered from your selected Landers branch
+        </div>
+        <div class="ld-pv-buy">
           <div class="ld-qty">
-            <button type="button" data-step="-1" aria-label="Decrease">−</button>
-            <input id="ld-qty-input" type="number" value="1" min="1" max="999" inputmode="numeric">
-            <button type="button" data-step="1" aria-label="Increase">+</button>
+            <button type="button" data-step="-1" aria-label="Decrease quantity">-</button>
+            <input id="ld-qty-input" type="number" value="1" min="1" max="999" inputmode="numeric" aria-label="Quantity">
+            <button type="button" data-step="1" aria-label="Increase quantity">+</button>
           </div>
           <button class="ld-btn" id="ld-add-main">ADD TO CART</button>
           <a class="ld-btn ld-btn-ghost" href="/cart.html">View Cart</a>
@@ -386,6 +389,10 @@
       related.forEach((x) => (window.__LD_INDEX__[x.id] = x));
       bindAdd(rel);
     }
+
+    try {
+      window.LD.pixel && window.LD.pixel.viewContent(p);
+    } catch (e) {}
   }
 
   /* ---------------- 搜索 ---------------- */
@@ -440,9 +447,9 @@
             <div class="unit">${money(it.listPrice)} → <b>${money(it.price)}</b> each</div>
           </div>
           <div class="ld-qty">
-            <button type="button" data-step="-1">−</button>
-            <input type="number" min="1" max="999" value="${it.qty}" data-qty="${it.id}">
-            <button type="button" data-step="1">+</button>
+            <button type="button" data-step="-1" aria-label="Decrease quantity">-</button>
+            <input type="number" min="1" max="999" value="${it.qty}" data-qty="${it.id}" aria-label="Quantity">
+            <button type="button" data-step="1" aria-label="Increase quantity">+</button>
           </div>
           <div class="sum">${money(it.price * it.qty)}</div>
           <button class="ld-cart-remove" data-remove="${it.id}" aria-label="Remove">×</button>
