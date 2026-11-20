@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en-PH">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Promotions | Landers Superstore</title>
+  <meta name="description" content="Promotions">
+  <link rel="icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/assets/base.css">
+  <script defer src="/assets/layout.js"></script>
+</head>
+<body>
+  <div id="ld-header"></div>
+  <main class="ld-wrap">
+    <div class="ld-crumb"><a href="/">Home</a> / Promotions</div>
+    <article class="ld-doc">
+<h1>Promotions</h1>
+<p>Every item in this storefront is listed at <b>50% off the regular shelf price</b>. Browse a category to see the full range.</p>
+<div id="ld-cats" class="ld-grid" style="margin-top:18px"></div>
+<script>
+fetch('/data/categories.json').then(r=>r.json()).then(cats=>{
+  document.getElementById('ld-cats').innerHTML = cats.filter(c=>c.slug!=='uncategorized')
+    .map(c=>'<a class="ld-card" style="text-decoration:none" href="/c/'+c.slug+'.html"><div class="ld-card-name" style="height:auto">'+c.name+'</div><div class="ld-card-brand">'+c.count+' products · 50% off</div></a>')
+    .join('');
+});
+</script>
+    </article>
+  </main>
+  <div id="ld-footer"></div>
+</body>
+</html>

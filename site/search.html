@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en-PH">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Search | Landers Superstore</title>
+  <link rel="icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/assets/base.css">
+  <script defer src="/assets/layout.js"></script>
+  <script defer src="/assets/app.js"></script>
+</head>
+<body data-page="search">
+  <div id="ld-header"></div>
+
+  <main class="ld-wrap">
+    <div class="ld-crumb"><a href="/">Home</a> / Search</div>
+    <div class="ld-page-head">
+      <h1>Search</h1>
+      <div class="ld-count" id="ld-search-head">Type something to search the Landers catalogue.</div>
+    </div>
+    <div class="ld-toolbar">
+      <form action="/search.html" method="get" style="display:flex;gap:8px">
+        <input id="ld-search-input" name="q" type="search" placeholder="Search products" style="min-width:280px">
+        <button class="ld-btn" type="submit" style="height:36px">SEARCH</button>
+      </form>
+    </div>
+    <div class="ld-grid" id="ld-grid"></div>
+  </main>
+
+  <div id="ld-footer"></div>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en-PH">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Order Confirmed | Landers Superstore</title>
+  <link rel="icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/assets/base.css">
+  <script defer src="/assets/layout.js"></script>
+  <script defer src="/assets/app.js"></script>
+</head>
+<body data-page="order">
+  <div id="ld-header"></div>
+
+  <main class="ld-wrap">
+    <div class="ld-success">
+      <div class="tick">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
+      </div>
+      <h1>Thank you for your order!</h1>
+      <p>We have received your payment and your groceries are being picked.</p>
+      <table>
+        <tr><th>Order number</th><td id="ld-order-no">—</td></tr>
+        <tr><th>Email</th><td id="ld-order-email">—</td></tr>
+        <tr><th>Amount paid</th><td id="ld-order-total">—</td></tr>
+      </table>
+      <div class="ld-order-lines" id="ld-order-lines"></div>
+      <p style="margin-top:22px">
+        <a class="ld-btn" href="/" style="display:inline-block;line-height:44px">CONTINUE SHOPPING</a>
+      </p>
+      <p style="font-size:12px;margin-top:14px">
+        Track this order in <a href="/track.html" style="color:#83b151">Track &amp; Trace</a>.
+      </p>
+    </div>
+  </main>
+
+  <div id="ld-footer"></div>
+</body>
+</html>

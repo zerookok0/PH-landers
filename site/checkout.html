@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Checkout</title>
+
+  <!-- ① UTM 捕获：同步内联，必须最先执行 -->
+  <script>
+  (function(){
+    var K=['utm_source','utm_medium','utm_campaign','utm_term','utm_content',
+           'utm_id','fbclid','ttclid','gclid','adset_id','campaign_id',
+           'sub1','sub2','sub3','sub4','sub5'];
+    function grab(q){var o={},p=(q||'').replace(/^\?/,'').split('&');for(var i=0;i<p.length;i++){
+      var kv=p[i].split('=');if(kv.length<2)continue;try{var k=decodeURIComponent(kv[0]);
+      if(K.indexOf(k)!==-1)o[k]=decodeURIComponent(kv.slice(1).join('='));}catch(e){}}return o;}
+    function load(){try{return JSON.parse(sessionStorage.getItem('bp_utm')||'{}')}catch(e){return {}}}
+    function save(o){try{sessionStorage.setItem('bp_utm',JSON.stringify(o))}catch(e){}
+      try{var d=new Date();d.setTime(d.getTime()+7*864e5);
+      document.cookie='bp_utm='+encodeURIComponent(JSON.stringify(o))+'; expires='+d.toUTCString()+'; path=/; SameSite=Lax';}catch(e){}}
+    var cur=load(),add=false;
+    var m=grab(location.search); for(var a in m){cur[a]=m[a];add=true}
+    try{var n=performance.getEntriesByType&&performance.getEntriesByType('navigation')[0];
+      if(n&&n.name){var mm=grab(n.name.split('?')[1]||'');for(var b in mm){cur[b]=mm[b];add=true}}}catch(e){}
+    try{if(document.referrer){var mm2=grab((document.referrer.split('?')[1])||'');
+      for(var c in mm2){if(!cur[c]){cur[c]=mm2[c];add=true}}}}catch(e){}
+    if(add)save(cur);
+    window.__BP_UTM__=cur;
+  })();
+  </script>
+
+  <!-- ② 购物车骨架：必须在 connector.js 之前就存在 -->
+  <script>
+    window.__BP_CART__ = {
+      order_number: "", currency: "", total: 0, total_amount: "",
+      items: [], locale: document.documentElement.lang || "en"
+    };
+  </script>
+
+  <!-- ③ connector 资源（绝对路径） -->
+  <link rel="stylesheet" href="/bp/connector.css">
+  <script defer src="/bp/connector.js"></script>
+
+  <link rel="icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/assets/base.css">
+  <script defer src="/assets/layout.js"></script>
+  <script defer src="/assets/checkout.js"></script>
+</head>
+<body data-page="checkout">
+  <div id="ld-header"></div>
+
+  <main class="ld-wrap">
+    <div class="ld-crumb"><a href="/">Home</a> / <a href="/cart.html">Cart</a> / Checkout</div>
+    <div class="ld-page-head">
+      <h1>Checkout</h1>
+      <div class="ld-count" id="ld-checkout-steps">Secure checkout</div>
+    </div>
+
+    <form id="bp-form" class="ld-checkout" novalidate autocomplete="on">
+      <div>
+        <div class="ld-panel">
+          <h2>Billing Information</h2>
+          <div class="hint">All fields are required. We deliver from your nearest Landers branch.</div>
+
+          <div class="ld-field">
+            <label for="t-name">Full name</label>
+            <input id="t-name" name="name" autocomplete="name" placeholder="Cardholder name">
+          </div>
+
+          <div class="ld-row-2">
+            <div class="ld-field">
+              <label for="t-email">Email</label>
+              <input id="t-email" name="email" type="email" autocomplete="email" placeholder="you@example.com">
+            </div>
+            <div class="ld-field">
+              <label for="t-phone">Mobile number</label>
+              <input id="t-phone" name="phone" type="tel" autocomplete="tel" placeholder="+63 9XX XXX XXXX">
+            </div>
+          </div>
+
+          <div class="ld-field">
+            <label for="t-addr">Street address</label>
+            <input id="t-addr" name="addr" autocomplete="address-line1" placeholder="House / unit, street, barangay">
+          </div>
+
+          <div class="ld-row-3">
+            <div class="ld-field">
+              <label for="t-city">City</label>
+              <input id="t-city" name="city" autocomplete="address-level2" placeholder="City">
+            </div>
+            <div class="ld-field">
+              <label for="t-zip">ZIP</label>
+              <input id="t-zip" name="zip" autocomplete="postal-code" placeholder="1000">
+            </div>
+            <div class="ld-field">
+              <label for="t-country">Country</label>
+              <select id="t-country" name="country" autocomplete="country">
+                <option value="PH" selected>Philippines</option>
+                <option value="US">United States</option>
+                <option value="SG">Singapore</option>
+                <option value="JP">Japan</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="ld-panel" style="margin-top:18px">
+          <h2>Payment</h2>
+          <div class="hint">Visa, Mastercard, JCB and American Express accepted.</div>
+
+          <div class="ld-card-fields">
+            <div class="ld-field">
+              <label for="bp-card-number">Card number</label>
+              <input id="bp-card-number" name="card-number" type="text" inputmode="numeric"
+                     autocomplete="cc-number" maxlength="23" placeholder="Card number">
+            </div>
+            <div class="ld-field">
+              <label for="bp-card-expiry">Expiry</label>
+              <input id="bp-card-expiry" name="card-expiry" type="text" inputmode="numeric"
+                     autocomplete="cc-exp" maxlength="7" placeholder="MM/YY">
+            </div>
+            <div class="ld-field">
+              <label for="bp-card-cvc">CVC</label>
+              <input id="bp-card-cvc" name="card-cvc" type="text" inputmode="numeric"
+                     autocomplete="cc-csc" maxlength="4" placeholder="CVC">
+            </div>
+          </div>
+
+          <div class="ld-total">
+            <span>Total to pay</span>
+            <span id="bp-total" data-amount="0" data-currency="PHP">&#8369;0.00</span>
+          </div>
+
+          <div id="bp-error" role="alert" aria-live="polite"></div>
+
+          <button id="bp-submit" class="ld-btn" type="submit">PAY NOW</button>
+
+          <div class="ld-secure">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1 3 5v6c0 5 3.8 9.7 9 11 5.2-1.3 9-6 9-11V5l-9-4zm0 10.9h7c-.5 3.9-3.2 7.4-7 8.6V12H5V6.3l7-3.1v8.7z"/></svg>
+            Your payment details are encrypted in transit.
+          </div>
+        </div>
+      </div>
+
+      <aside class="ld-panel">
+        <h2>Your Order</h2>
+        <div class="hint" id="ld-order-number">Order —</div>
+        <div class="ld-order-lines" id="ld-checkout-lines"></div>
+        <div class="ld-sum-row"><span>Regular price</span><span id="ld-checkout-list">&#8369;0.00</span></div>
+        <div class="ld-sum-row"><span>You save (50%)</span><span id="ld-checkout-saved" style="color:#dc3545">-&#8369;0.00</span></div>
+        <div class="ld-sum-row total"><span>Total</span><span id="ld-checkout-total">&#8369;0.00</span></div>
+        <p style="margin-top:14px;font-size:12px;color:#8b93a5">
+          By placing this order you accept the
+          <a href="/terms-and-conditions.html" style="color:#83b151">Terms and Conditions</a> and
+          <a href="/privacy.html" style="color:#83b151">Privacy Policy</a>.
+        </p>
+      </aside>
+    </form>
+  </main>
+
+  <div id="ld-footer"></div>
+</body>
+</html>

@@ -1,0 +1,8 @@
+# /order/<order_number> 由前端决定跳转目标，这里用 200 rewrite 保住 URL 与状态码
+/order/*    /order.html    200
+
+# 旧路径兼容
+/index.html          /                    301
+/promotions          /promotions.html     301
+/new-trending        /new-trending.html   301
+/terms-and-conditions/  /terms-and-conditions.html  301

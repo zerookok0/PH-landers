@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en-PH">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Track &amp; Trace | Landers Superstore</title>
+  <meta name="description" content="Track &amp; Trace">
+  <link rel="icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/assets/base.css">
+  <script defer src="/assets/layout.js"></script>
+</head>
+<body>
+  <div id="ld-header"></div>
+  <main class="ld-wrap">
+    <div class="ld-crumb"><a href="/">Home</a> / Track &amp; Trace</div>
+    <article class="ld-doc">
+<h1>Track &amp; Trace</h1>
+<p>Enter the order number you received after checkout.</p>
+<form onsubmit="event.preventDefault();var v=this.o.value.trim();document.getElementById('tr').innerHTML=v?('<p><b>Order '+v.replace(/[<>&]/g,'')+'</b> — preparing at your chosen branch. You will receive an SMS when the rider is on the way.</p>'):'';">
+  <p style="display:flex;gap:8px;max-width:520px"><input name="o" placeholder="ORD-20261120-XXXX" style="flex:1;height:44px;border:1px solid #e6e8ee;border-radius:6px;padding:0 12px"><button class="ld-btn" type="submit">TRACK</button></p>
+</form>
+<div id="tr"></div>
+    </article>
+  </main>
+  <div id="ld-footer"></div>
+</body>
+</html>

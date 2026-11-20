@@ -1,0 +1,13 @@
+# 构建产物
+dist/
+.wrangler/
+node_modules/
+
+# 抓取原件（体积大，不入库；需要时 npm run fetch 重建）
+raw/
+
+# 本地杂项
+*.log
+.DS_Store
+Thumbs.db
+.shots/
