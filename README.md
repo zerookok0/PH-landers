@@ -14,7 +14,7 @@
 | 商品页 | `/product.html?id=<id>&cat=<slug>` — 上下结构（大图在上、标题/价格/数量/加购/详情在下），图集、半价、相关推荐 |
 | 搜索 | `/search.html?q=` — 全量索引本地检索 |
 | 购物车 | `/cart.html` — 改数量、删除、小计、优惠额、去结账 |
-| 结账页 | `/checkout` — 契约 §3/§4 的 DOM 与脚本顺序，接 `/bp/` connector（`bp/` 为 20261121 版：守卫模式 + 面板托管验证屏） |
+| 结账页 | `/checkout` — 契约 §3/§4 的 DOM 与脚本顺序，接 `/bp/` connector（`bp/` 为 20261121 修订版：守卫模式 + 面板托管验证屏 + 按钮转圈/卡片遮罩） |
 | 成功页 | `/order/<order_number>` — 200 rewrite，不跳转 |
 | 条款页 | `/terms-and-conditions`、`/privacy`（原站正文）及其它信息页 |
 | 会员 | `/register`（会员申请）、`/login`、`/account`（资料 / 送货地址 / 订单历史） |
@@ -33,7 +33,7 @@
 | 类目页 | `preview/category.png` |
 | 商品页（上下结构） | `preview/product.png` |
 | 购物车 | `preview/cart.png` |
-| 结账页 | `preview/checkout.png` |
+| 结账页 | `preview/checkout.png` |\n| 结账页·等待面板 | `preview/checkout-busy.png` |
 | 登录 | `preview/login.png` |
 | 会员申请（注册） | `preview/register.png` |
 | 我的账号 | `preview/account.png` |
@@ -322,7 +322,8 @@ curl -s -X POST https://<站点>/api/checkout -H 'Content-Type: application/json
 | §3 无 `<base>` | 全站无 `<base>`（自检脚本会查） |
 | §4 六个固定 id | `#bp-card-number/-expiry/-cvc`、`#bp-total`、`#bp-error`、`#bp-submit` 全部原生 input/div |
 | §4.1 三处同源 | `checkout.js` 的 `cartPayload()` + `paintTotal()` + `/api/cart` |
-| §4.1 按钮不禁用 | `#bp-submit` 只用 `aria-busy` 防重复，不设 `disabled` |
+| §4.1 按钮不禁用 | `#bp-submit` 只用 `aria-busy` 防重复，不设 `disabled`；等待期间由 connector 加 `.bp-busy`（隐藏文字 + 按钮内转圈动图），出错自动恢复 |
+| §4.1 卡片区遮罩 | 卡片三字段外层容器必须带 **`.bp-card-fields`**（connector 20261121 起：等待时只给这块加 `.bp-veil` 淡化到 45% 并禁止交互；缺这个 class 会退回到整个 `<form>` 变灰，把提交按钮也一起灰掉） |
 | §4.2 首屏渲染卡表单 | 卡表单在结账页静态 HTML 里，不做二段式 |
 | §5.1 原地 mutate | `checkout.js` 只改 `window.__BP_CART__` 字段，不换对象 |
 | §5.2 `GET /api/cart` | `functions/api/cart.js`（读 `ld_cart`/`ld_ord` cookie） |
@@ -372,11 +373,11 @@ curl -s -X POST https://<站点>/api/checkout -H 'Content-Type: application/json
 
 ## 9. 自检记录
 
-`npm run verify`（契约，81 项）+ `npm run e2e`（真浏览器全链路，56 项）最近一次输出：
+`npm run verify`（契约，84 项）+ `npm run e2e`（真浏览器全链路，57 项）最近一次输出：
 
 ```
-[verify] pass=81 fail=0
-[e2e]    pass=56 fail=0
+[verify] pass=84 fail=0
+[e2e]    pass=57 fail=0
 ```
 
 覆盖：

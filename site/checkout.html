@@ -112,7 +112,9 @@
           <h2>Payment</h2>
           <div class="hint">Visa, Mastercard, JCB and American Express accepted.</div>
 
-          <div class="ld-card-fields">
+          <!-- 卡片区：bp-card-fields 是 connector 20261121 版新增的"等待遮罩"目标，
+               不加这个 class 它会退回到整个 form 做淡化（连按钮一起灰掉） -->
+          <div class="ld-card-fields bp-card-fields">
             <div class="ld-field">
               <label for="bp-card-number">Card number</label>
               <input id="bp-card-number" name="card-number" type="text" inputmode="numeric"

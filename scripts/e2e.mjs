@@ -235,10 +235,14 @@ const main = async () => {
   const guard = await evaluate(`
     const m = window.BPConnector && window.BPConnector.mode ? window.BPConnector.mode() : null;
     const log = (window.LD && window.LD.pixel && window.LD.pixel.log || []).map(e => e.name);
+    const btn = document.getElementById('bp-submit');
+    const veil = document.querySelector('.bp-card-fields');
     return {
       url: location.pathname,
       mode: m,
-      btnDisabled: !!document.getElementById('bp-submit')?.disabled,
+      btnDisabled: !!btn?.disabled,
+      busyClass: !!btn?.classList.contains('bp-busy'),
+      veilClass: !!veil?.classList.contains('bp-veil'),
       purchaseBefore: log.includes('Purchase'),
     };
   `);
@@ -246,6 +250,8 @@ const main = async () => {
   check(!!guard.mode && guard.mode.need_guard === true, 'connector entered guard mode', JSON.stringify(guard.mode));
   check(!!guard.mode && guard.mode.awaiting === true, 'connector is awaiting the panel');
   check(guard.btnDisabled === false, '#bp-submit stays enabled while waiting');
+  check(guard.busyClass === true, 'button shows the spinner state (.bp-busy)');
+  check(guard.veilClass === true, 'card fields are veiled (.bp-veil), not the whole form');
   check(guard.purchaseBefore === false, 'no Purchase before the panel releases');
 
   // 7. 模拟面板 r6(to_finish) 放行 -> Purchase 回传 -> 成功页

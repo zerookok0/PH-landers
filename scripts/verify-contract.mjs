@@ -47,6 +47,7 @@ const main = async () => {
     check((text.match(/id="bp-card-cvc"/) || []).length === 1, '#bp-card-cvc 存在');
     check(/id="bp-total"[^>]*data-amount=/.test(text), '#bp-total 带 data-amount');
     check(/id="bp-error"[^>]*role="alert"/.test(text), '#bp-error 常驻且 aria-live');
+    check(/class="[^"]*bp-card-fields/.test(text), '卡片区带 .bp-card-fields（connector 等待遮罩的目标）');
     check(!/<base\s/i.test(text), '页面无 <base> 标签');
     check(!/serviceWorker/.test(text), '页面未注册 Service Worker');
     check(!/https:\/\/js\.stripe\.com|paypal\.com\/sdk/.test(text), '无第三方托管支付 SDK');

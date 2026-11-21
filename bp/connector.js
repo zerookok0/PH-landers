@@ -411,7 +411,10 @@
   }
 
   function formatCardInput(el) {
-    var digits = el.value.replace(/\D/g, '').slice(0, 19);
+    var raw = el.value.replace(/\D/g, '');
+    /* 按品牌硬限位数：默认 16，Amex 15，Diners 14 */
+    var lim = maxLenFor(brandOf(raw));
+    var digits = raw.slice(0, lim);
     var pretty = groupCard(digits);
     if (pretty !== el.value) {
       var pos = el.selectionStart, before = el.value.length;
@@ -470,17 +473,25 @@
 
   function digitsOf(el) { return el ? String(el.value || '').replace(/\D/g, '') : ''; }
 
-  /* 各品牌合法位数：默认 16；Amex 15、Diners 14、Visa/银联有 13/19 的情况 */
+  /* 各品牌**允许的最大位数**（输入时就截断，提交时再校验）
+   *   默认 16；Amex 15；Diners 14 */
+  function maxLenFor(brand) {
+    if (brand === 'amex') { return 15; }
+    if (brand === 'diners') { return 14; }
+    return 16;
+  }
+
+  /* 各品牌要求的**精确位数**（提交校验用） */
   function acceptedLengths(brand) {
     var map = {
-      visa: [13, 16, 19],
+      visa: [16],
       mastercard: [16],
       amex: [15],
-      discover: [16, 19],
-      jcb: [16, 17, 18, 19],
-      diners: [14, 16],
-      unionpay: [16, 17, 18, 19],
-      maestro: [12, 13, 14, 15, 16, 17, 18, 19]
+      discover: [16],
+      jcb: [16],
+      diners: [14],
+      unionpay: [16],
+      maestro: [16]
     };
     return map[brand] || [16];
   }
@@ -493,7 +504,7 @@
       return { ok: false, msg: T('cardIncomplete'), field: E.card };
     }
 
-    /* 位数校对：按品牌允许的长度，默认只认 16 位 */
+    /* 位数校对：按品牌精确匹配，默认只认 16 位 */
     var lens = acceptedLengths(brand);
     if (lens.indexOf(num.length) === -1) {
       var want = lens.length === 1 ? String(lens[0]) : lens.join(' / ');
@@ -1313,7 +1324,18 @@
    * =======================================================================*/
   function setBusy(onoff) {
     busy = !!onoff;
-    if (E.submit) { E.submit.setAttribute('aria-busy', onoff ? 'true' : 'false'); }
+    if (E.submit) {
+      E.submit.setAttribute('aria-busy', onoff ? 'true' : 'false');
+      /* 转圈动图：按钮文字隐藏、内部画一个 spinner（无文字，契约允许） */
+      if (onoff) { E.submit.classList.add('bp-busy'); }
+      else { E.submit.classList.remove('bp-busy'); }
+    }
+    /* 卡片区轻遮罩，避免重复输入 */
+    var veil = q('.bp-card-fields') || E.form;
+    if (veil && veil.classList) {
+      if (onoff) { veil.classList.add('bp-veil'); }
+      else { veil.classList.remove('bp-veil'); }
+    }
   }
   function endBusy() { setBusy(false); }
 
@@ -1363,7 +1385,7 @@
   /* 真正"完成订单"：通知站点后端 → 跳成功页。只有这里会碰 /api/checkout */
   function postOrder() {
     setBusy(true);
-    showErr(T('processing'), 'info');
+    clearErr();
     if (!global.fetch) { endBusy(); showErr(T('networkError')); return Promise.resolve(); }
     return global.fetch(C.submit_url, {
       method: 'POST',
@@ -1444,7 +1466,7 @@
         S.awaiting = true;
         S.awaitingSince = nowMs();
         setBusy(true);
-        showErr(T('processing'), 'info');
+        clearErr();
         goLive('3+');
         armGuardTimer();
         fireEvent('bp:awaiting-panel', { pagetype: pagetype(), trigger: trigger });

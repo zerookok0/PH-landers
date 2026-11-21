@@ -110,6 +110,22 @@ const main = async () => {
     location.reload();
   `);
   await shot('checkout', 1440, 1100, BASE + '/checkout');
+  await shot(
+    'checkout-busy',
+    1440,
+    1100,
+    BASE + '/checkout',
+    `const set = (id, v) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); };
+     set('t-name', 'Juan Dela Cruz');
+     set('t-email', 'juan@example.com');
+     set('bp-card-number', '4242424242424242');
+     set('bp-card-expiry', '12/30');
+     set('bp-card-cvc', '123');
+     await new Promise(r => setTimeout(r, 200));
+     document.getElementById('bp-form').dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+     await new Promise(r => setTimeout(r, 1200));
+     return true;`
+  );
   await shot('mobile-home', 390, 844, BASE + '/');
 
   await shot('login', 1440, 1050, BASE + '/login');
