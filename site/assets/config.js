@@ -9,7 +9,7 @@ window.LD_CONFIG = {
   currency: 'PHP',
 
   /* ---------------- Facebook Pixel ---------------- */
-  fbPixelId: '', // 例：'1234567890123456'。填了才会注入 fbevents.js
+  fbPixelId: '1913057443198787', // 例：'1234567890123456'。填了才会注入 fbevents.js
   pixelEvents: {
     pageView: true, // 每次页面加载
     viewContent: true, // 商品详情页
